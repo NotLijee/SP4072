@@ -1,0 +1,21 @@
+CMSI 4072 Spring 2025
+Project Proposal Feedback
+Project: Tradie
+=========================
+Proposal Document [2 points]:
+   Not done.  DANG!
+
+Proposal Presentation [3 points]:
+   Nice work here.  Your presentation is a nice, subdued template that's easy
+   on the eyes.  You spoke well, knew what you were going to say, talked to
+   the audience instead of the slides, and answered questions well.  You had
+   a very knowledgeable and professional demeanor as well, but included some
+   humorous touches which made the presentation very engaging and easy to pay
+   attention to.  Excellent graphics, as well.  VERY well done, Elija!
+
+Summary:
+--------
+Total:  3% out of 5% for this deliverable.
+
+Nice job overall!  Great start to the semester, but get that proposal document
+into your repository ASAP so the percentage comes back up!
