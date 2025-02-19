@@ -1,0 +1,50 @@
+
+New Individual Project
+Documentation Feedback ~ Deliverable #2
+Software Requirements Specification &
+Initial Development Schedule
+CMSI 4072 Spring 2025
+=======================================
+
+COMPONENT BREAKDOWN:
+   Not required for this semester's exercise
+
+FUNCTIONAL REQUIREMENTS:
+   This is a good start to the document, but you are going to need quite a
+   few more functional requirements.  To have only 10 total requirements for
+   a project of this size is not enough granularity.  Try to think of the
+   way this will need to be programmed and how you will *test* the code to
+   prove it *meets* the requirements.  For example, you specify using the
+   "Beautiful Soup" web scraping tool to obtain your data, and you mention
+   you need to 'clean and normalize' the data, but you don't say what needs
+   to happen to "clean" or to "normalize" the data.  This should all be
+   specific.
+
+   While there isn't a minimum [or maximum!] requirement count, there should
+   be more detail than what you have here.  Jus' sayin'....
+
+PERFORMANCE REQUIREMENTS:
+   These are excellent!  Good job on this section, nothing else needed.
+   Even Agile documents need performance requirements.
+
+ENVIRONMENT REQUIREMENTS:
+   These are fine, too.  Good job on this section, nothing else needed.
+   Even Agile documents need performance requirements.
+
+OVERALL ASSESSMENT:
+   Category                          Points
+   Component Breakdown                 2/2
+   Functional Requirements             4/5
+   Performance Requirements            2/2
+   Environment Requirements            1/1
+                                     =====
+   Subtotal                           9/10
+   ------------------------------------------------------
+   Total Percentage:    9/10 = 90% which is an A
+
+
+Great start!  Add more functional requirements and submit by the end of the
+semester for full credit on this deliverable.
+
+And keep up the good work, Elijah!
+
