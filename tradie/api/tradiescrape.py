@@ -1,12 +1,14 @@
 from bs4 import BeautifulSoup
 from yahooquery import Ticker
 from fastapi import FastAPI
-import yfinance as yf 
 from pydantic import BaseModel
+from datetime import datetime
 import matplotlib.pyplot as plt
 import requests 
 import pandas as pd 
 import google.generativeai as genai
+import yfinance as yf 
+
 # import schedule
 # import time 
 
@@ -27,19 +29,6 @@ header_titles = [title.text.strip().replace('\xa0', ' ') for title in headers]
 dataframe = pd.DataFrame(columns=header_titles)
 column_data = latest_insider_purchase_table.find_all('tr')
 
-# Creating the dataframe
-for row in column_data[1:]:
-    row_data = row.find_all('td')
-    each_row_data = [individual_data.text.strip() for individual_data in row_data]
-    length = len(dataframe)
-    dataframe.loc[length] = each_row_data
-
-# Turning the percentage into integers and putting them back in DF to compare
-dataframe.iloc[:, 11] = dataframe.iloc[:, 11].replace('%', '', regex=True)
-dataframe.iloc[:, 11] = pd.to_numeric(dataframe.iloc[:, 11], errors='coerce')
-dataframe.iloc[:, 11] = dataframe.iloc[:, 11].fillna(0).astype(float)
-dataframe.iloc[:, 11] = dataframe.iloc[:, 11].astype(int)
-
 dataframe.rename(columns={
     'X': 'x',
     'Filing Date': 'filingDate',
@@ -56,6 +45,21 @@ dataframe.rename(columns={
     'Value': 'moneyValueIncrease'
 }, inplace=True)
 
+# Creating the dataframe
+for row in column_data[1:]:
+    row_data = row.find_all('td')
+    each_row_data = [individual_data.text.strip() for individual_data in row_data]
+    length = len(dataframe)
+    dataframe.loc[length] = each_row_data
+
+# Turning the percentage into integers and putting them back in DF to compare
+dataframe.iloc[:, 11] = dataframe.iloc[:, 11].replace('%', '', regex=True)
+dataframe.iloc[:, 11] = pd.to_numeric(dataframe.iloc[:, 11], errors='coerce')
+dataframe.iloc[:, 11] = dataframe.iloc[:, 11].fillna(0).astype(float)
+dataframe.iloc[:, 11] = dataframe.iloc[:, 11].astype(int)
+#Changing the date format to look normal 
+dataframe["tradeDate"] = pd.to_datetime(dataframe["tradeDate"]).dt.strftime("%-m/%-d/%y")
+dataframe["filingDate"] = pd.to_datetime(dataframe["filingDate"]).dt.strftime("%-m/%-d/%y")
 
 
 
