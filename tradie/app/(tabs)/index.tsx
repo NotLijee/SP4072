@@ -2,13 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Appearance } from 'react-native';
 import axios from 'axios';
 import { Card } from 'react-native-ui-lib'; // Import the Card component
+import { useRouter } from 'expo-router'; // Import the useRouter hook
 
-// Get the screen width
+
 const { width: screenWidth } = Dimensions.get('window');
-
-// Determine the current color scheme
 const colorScheme = Appearance.getColorScheme();
-
 const API_URL = 'http://127.0.0.1:8000'; // Replace with your FastAPI server URL
 
 // Define the TypeScript interface for the data
@@ -54,7 +52,10 @@ const App = () => {
   const [presData, setPresData] = useState<TradeData[] | null>(null);
   const [cfoData, setCfoData] = useState<TradeData[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter()
 
+
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -98,7 +99,21 @@ const App = () => {
           <>
             <Text style={styles.title}>Today's Insider Stocks :</Text>
             {allData.map((item, index) => (
-              <TouchableOpacity key={index} onPress={() => handleCardPress(item)}>
+              <TouchableOpacity  key={index}
+              onPress={() =>
+                router.push({
+                  pathname: `/(tabs)/stockCards /[ticker]`,
+                  params: {
+                    ticker: item.ticker,
+                    insiderName: item.insiderName,
+                    tradeDate: item.tradeDate,
+                    filingDate: item.filingDate,
+                    price: item.price.toString(),
+                    quantity: item.quantity.toString(),
+                    percentOwnedIncrease: item.percentOwnedIncrease.toString(),
+                  },
+                })
+              }>
                 <Card style={styles.card}>
                   <Card.Section
                     content={[
