@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Appea
 import axios from 'axios';
 import { Card } from 'react-native-ui-lib'; // Import the Card component
 import { useRouter } from 'expo-router'; // Import the useRouter hook
-
+import { LinearGradient } from 'expo-linear-gradient'; // Import the LinearGradient component
 
 const { width: screenWidth } = Dimensions.get('window');
 const colorScheme = Appearance.getColorScheme();
@@ -78,26 +78,21 @@ const App = () => {
     fetchData();
   }, []);
 
-  const handleCardPress = (item: TradeData) => {
-    // Handle the card press event
-    console.log('Card pressed:', item);
-    // You can navigate to another screen or perform any action here
-  };
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.gradientContainer}>
         <Text>Loading...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.gradientContainer}>
       <View style={styles.innerContainer}>
         {allData && (
           <>
-            <Text style={styles.title}>Today's Insider Stocks :</Text>
+            <Text style={styles.title}>Insider Trades </Text>
             {allData.map((item, index) => (
               <TouchableOpacity  key={index}
               onPress={() =>
@@ -105,21 +100,26 @@ const App = () => {
                   pathname: `/(tabs)/stockCards /[ticker]`,
                   params: {
                     ticker: item.ticker,
+                    title: item.title,
+                    tradeType: item.tradeType,
                     insiderName: item.insiderName,
+                    companyName: item.companyName,
                     tradeDate: item.tradeDate,
                     filingDate: item.filingDate,
                     price: item.price.toString(),
                     quantity: item.quantity.toString(),
                     percentOwnedIncrease: item.percentOwnedIncrease.toString(),
+                    alreadyOwned: item.alreadyOwned,
+                    moneyValueIncrease: item.moneyValueIncrease,
                   },
                 })
               }>
                 <Card style={styles.card}>
                   <Card.Section
                     content={[
-                      {text: "insider", text100: true, grey40: true},
-                      { text: item.insiderName, text80: true, grey10: true },
-                      { text: `ticker: ${item.ticker}`, text90: true, grey30: true }
+                      {text: "insider", style: styles.cardText},
+                      { text: item.insiderName, style: styles.cardInsider },
+                      { text: `ticker: ${item.ticker}`,style: styles.cardText }
                     ]}
                     style={styles.cardContent}
                   />
@@ -156,9 +156,8 @@ const App = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  gradientContainer: {
     flex: 1,
-    backgroundColor: colorScheme === 'dark' ? '#121212' : '#FFFFFF', // Dark mode background
   },
   innerContainer: {
     justifyContent: 'center',
@@ -169,7 +168,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 50,
-    color: colorScheme === 'dark' ? '#FFFFFF' : '#000000', // Dark mode text color
+    color: '#FFFFFF',
   },
   jsonText: {
     fontSize: 14,
@@ -178,18 +177,26 @@ const styles = StyleSheet.create({
   },
   card: {
     marginVertical: 8,
-    width: screenWidth * 0.8,
+    width: screenWidth * 0.92,
     alignSelf: 'center',
-    backgroundColor: colorScheme === 'dark' ? '#1E1E1E' : '#F8F9FA', // Dark mode card background
-  },
+    backgroundColor: '#333333',
+    },
   cardContent: {
     padding: 16,
   },
   cardText: {
     fontSize: 16,
     fontFamily: 'monospace',
-    color: colorScheme === 'dark' ? '#FFFFFF' : '#000000', // Dark mode text color
-  },
+    color: '#FFFFFF',
+    },
+    cardInsider: {
+      color: '#38a3a5',
+      fontWeight: 'bold',
+
+    },
+    cardTicker: {
+      color: '#22577a',
+    },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -208,12 +215,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   footerText: {
-    fontSize: 14,
-    color: colorScheme === 'dark' ? '#FFFFFF' : '#000000',
+    fontSize: 16,
+    color: '#FFFFFF',
+    
   },
   footerLabel: {
     fontSize: 12,
-    color: colorScheme === 'dark' ? '#AAAAAA' : '#555555',
+    color: '#c7f9cc',
   },
 
 });
