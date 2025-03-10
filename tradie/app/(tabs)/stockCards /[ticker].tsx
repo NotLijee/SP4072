@@ -1,11 +1,13 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView, 
-  Image 
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  Modal,
+  SafeAreaView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +15,18 @@ import { WebView } from 'react-native-webview';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function StockDetails() {
+  const router = useRouter();
+
+  // State for the modal and the search text
+  const [modalVisible, setModalVisible] = useState(false);
+  const [searchText, setSearchText] = useState('');
+
+  // Function to open the modal and set the search text
+  const handlePressInsiderName = (name: string) => {
+    setSearchText(name);
+    setModalVisible(true);
+  };
+
   const {
     ticker = 'AAPL',
     insiderName = 'Nancy Pelosi',
@@ -21,13 +35,11 @@ export default function StockDetails() {
     price = '145.32',
     quantity = '10,000',
     percentOwnedIncrease = '2.5',
-    moneyValueIncrease = '1000000', // Add this line to extract moneyValueIncrease
+    moneyValueIncrease = '1000000',
     companyName = 'Apple Inc.',
     title = 'CFO',
     alreadyOwned = '100,000',
   } = useLocalSearchParams();
-
-  const router = useRouter();
 
   const handleBackPress = () => {
     router.push('/');
@@ -44,16 +56,20 @@ export default function StockDetails() {
         <Ionicons name="close" size={24} color="#FFFFFF" />
       </TouchableOpacity>
 
-      <ScrollView 
-        contentContainerStyle={styles.scrollViewContent} 
+      <ScrollView
+        contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.headerInfo}>
-            <Text style={styles.insiderName}>{insiderName}</Text>
+            {/* Make the insider name clickable */}
+              <Text style={styles.insiderName}>{insiderName}</Text>
+
             <Text style={styles.price}>{price}</Text>
-            <Text style={styles.dailyChange}>Stock amount {moneyValueIncrease} (+{percentOwnedIncrease}%)</Text> 
+            <Text style={styles.dailyChange}>
+              Stock amount {moneyValueIncrease} (+{percentOwnedIncrease}%)
+            </Text>
           </View>
           <Image
             // Replace with an actual URI or local image of your choice
@@ -64,8 +80,8 @@ export default function StockDetails() {
 
         {/* Chart (WebView) */}
         <View style={styles.webViewContainer}>
-          <WebView 
-            source={{ uri: `https://finance.yahoo.com/chart/${ticker}` }} 
+          <WebView
+            source={{ uri: `https://finance.yahoo.com/chart/${ticker}` }}
             style={{ backgroundColor: 'transparent' }}
           />
         </View>
@@ -91,18 +107,16 @@ export default function StockDetails() {
           </View>
         </View>
 
-      
-
         {/* Additional Details (Optional) */}
         <View style={styles.detailsContainer}>
           <Text style={styles.detailsTitle}>Company Details</Text>
           <Text style={styles.detail}>Company: {companyName}</Text>
+          <TouchableOpacity onPress={() => handlePressInsiderName(insiderName as string)}>
           <Text style={styles.detail}>Insider: {insiderName}</Text>
+          </TouchableOpacity>
           <Text style={styles.detail}>Previously Owned: {alreadyOwned} shares</Text>
           <Text style={styles.detail}>Quantity: {quantity} shares purchased</Text>
-          <Text style={styles.detail}>
-            % Owned Increase: {percentOwnedIncrease}%
-          </Text>
+          <Text style={styles.detail}>% Owned Increase: {percentOwnedIncrease}%</Text>
         </View>
 
         {/* Creator / Copy Section */}
@@ -111,6 +125,31 @@ export default function StockDetails() {
           <Text style={styles.copyButtonText}>Summarize</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Modal to show the Google search for insider name */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
+          {/* Close button at the top */}
+          <TouchableOpacity
+            style={styles.modalCloseButton}
+            onPress={() => setModalVisible(false)}
+          >
+            <Ionicons name="close" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {/* WebView that loads the Google search */}
+          <WebView
+            source={{
+              uri: `https://www.google.com/search?q=${encodeURIComponent(searchText)}`,
+            }}
+            style={{ flex: 1 }}
+          />
+        </SafeAreaView>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -152,7 +191,7 @@ const styles = StyleSheet.create({
   },
   dailyChange: {
     fontSize: 16,
-    color: '#57cc99', 
+    color: '#57cc99',
   },
   insiderImage: {
     width: 60,
@@ -194,12 +233,6 @@ const styles = StyleSheet.create({
     color: '#AAAAAA',
     marginTop: 4,
   },
-  description: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
   detailsContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
@@ -234,5 +267,10 @@ const styles = StyleSheet.create({
     color: '#22577a',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalCloseButton: {
+    padding: 10,
+    alignSelf: 'flex-end',
+    backgroundColor: 'transparent',
   },
 });
