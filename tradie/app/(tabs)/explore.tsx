@@ -1,12 +1,21 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { useState } from 'react';
+import { StyleSheet, View, Text, TextInput, Button } from 'react-native';
+import { signUp, signIn, signOut } from '@/backend/auth';
+import  useAuth from '@/backend/useAuth'
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
+
 export default function TabTwoScreen() {
+
+
+const [email, setEmail] = useState('');
+const [password, setPassword] = useState('');
+const user = useAuth();
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
@@ -19,11 +28,23 @@ export default function TabTwoScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
+        <ThemedText type="title">Profile</ThemedText>
       </ThemedView>
-      <View style={styles.webViewContainer}>
-        <WebView source={{ uri: "https://finance.yahoo.com/chart/AAPL" }} />
-      </View>
+      <View>
+      {user ? (
+        <>
+          <Text>Welcome, {user.email}</Text>
+          <Button title="Sign Out" onPress={signOut} />
+        </>
+      ) : (
+        <>
+          <TextInput placeholder="Email" value={email} onChangeText={setEmail} />
+          <TextInput placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} />
+          <Button title="Sign Up" onPress={() => signUp(email, password)} />
+          <Button title="Sign In" onPress={() => signIn(email, password)} />
+        </>
+      )}
+    </View>
     </ParallaxScrollView>
   );
 }

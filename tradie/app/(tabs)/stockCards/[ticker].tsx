@@ -111,9 +111,7 @@ export default function StockDetails() {
         <View style={styles.detailsContainer}>
           <Text style={styles.detailsTitle}>Company Details</Text>
           <Text style={styles.detail}>Company: {companyName}</Text>
-          <TouchableOpacity onPress={() => handlePressInsiderName(insiderName as string)}>
           <Text style={styles.detail}>Insider: {insiderName}</Text>
-          </TouchableOpacity>
           <Text style={styles.detail}>Previously Owned: {alreadyOwned} shares</Text>
           <Text style={styles.detail}>Quantity: {quantity} shares purchased</Text>
           <Text style={styles.detail}>% Owned Increase: {percentOwnedIncrease}%</Text>
@@ -121,8 +119,8 @@ export default function StockDetails() {
 
         {/* Creator / Copy Section */}
         <Text style={styles.creatorLabel}>AI Summary</Text>
-        <TouchableOpacity style={styles.copyButton}>
-          <Text style={styles.copyButtonText}>Summarize</Text>
+        <TouchableOpacity style={styles.summarizeButton}>
+          <Text style={styles.summarizeButtonText}>Summarize</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -256,14 +254,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 10,
   },
-  copyButton: {
+  summarizeButton: {
     backgroundColor: '#80ed99',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
     marginBottom: 40,
   },
-  copyButtonText: {
+  summarizeButtonText: {
     color: '#22577a',
     fontSize: 16,
     fontWeight: '600',
