@@ -1,0 +1,38 @@
+
+New Individual Project
+Documentation Feedback ~ Deliverable #3
+Software Design Document ~ Architecture
+CMSI 4072 Spring 2025
+=======================================
+
+SDD: ARCHITECTURAL DESIGN SECTION:
+   Major software components section
+      Very well done on this section.  Descriptions are clear and the way
+      the parts associate is easily understood.
+
+   Major software interactions section
+      Very nice here as well.  Clean understanding of the interfaces.
+
+   Architectural design diagrams section
+      Diagrams are good, but they really look more like use case diagrams
+      than what you have labeled them.  Check the UML links on the web site
+      for what the diagrams look like, or [probably easier] just rename them
+      to what they really are.
+
+OVERALL ASSESSMENT:
+   Category                           Points
+   --------------------------------   -------
+   ARCHITECTURAL DESIGN SECTION:
+   Major software components            2 / 2
+   Major software interactions          2 / 2
+   Architectural design diagrams      5.5 / 6
+                                      =======
+   Subtotal                           9.5 /10
+   ------------------------------------------------------
+   Total Percentage:  9.5/10 = 95% which is an A
+
+============================================================================
+COMMENTS:
+---------
+
+Keep up the good work, Elijah!  You're doing great.
