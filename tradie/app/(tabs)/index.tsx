@@ -97,7 +97,7 @@ const App = () => {
               <TouchableOpacity  key={index}
               onPress={() =>
                 router.push({
-                  pathname: `/(tabs)/stockCards /[ticker]`,
+                  pathname: `/(tabs)/stockCards/[ticker]`,
                   params: {
                     ticker: item.ticker,
                     title: item.title,

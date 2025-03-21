@@ -1,8 +1,6 @@
 import React from 'react';
 import { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, Button } from 'react-native';
-import { signUp, signIn, signOut } from '@/backend/auth';
-import  useAuth from '@/backend/useAuth'
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -14,7 +12,6 @@ export default function TabTwoScreen() {
 
 const [email, setEmail] = useState('');
 const [password, setPassword] = useState('');
-const user = useAuth();
 
   return (
     <ParallaxScrollView
@@ -28,23 +25,8 @@ const user = useAuth();
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Profile</ThemedText>
+        <ThemedText type="title">User Profile</ThemedText>
       </ThemedView>
-      <View>
-      {user ? (
-        <>
-          <Text>Welcome, {user.email}</Text>
-          <Button title="Sign Out" onPress={signOut} />
-        </>
-      ) : (
-        <>
-          <TextInput placeholder="Email" value={email} onChangeText={setEmail} />
-          <TextInput placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} />
-          <Button title="Sign Up" onPress={() => signUp(email, password)} />
-          <Button title="Sign In" onPress={() => signIn(email, password)} />
-        </>
-      )}
-    </View>
     </ParallaxScrollView>
   );
 }
