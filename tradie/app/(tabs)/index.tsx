@@ -142,14 +142,7 @@ const App = () => {
             ))}
           </>
         )}
-         {ceoData && (
-          <>
-            <Text style={styles.title}> CEO DATA :</Text>
-            {ceoData.map((item, index) => (
-              <Text key={index} style={styles.jsonText}>{item.companyName}</Text>
-            ))}
-          </>
-        )}
+    
       </View>
     </ScrollView>
   );
@@ -163,6 +156,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
+    marginBottom: 70,
   },
   title: {
     fontSize: 18,
