@@ -1,0 +1,57 @@
+
+New Individual Project
+Documentation Feedback ~ Deliverable #4
+Software Design Document ~ Detailed Design
+CMSI 4072 Spring 2025
+==========================================
+
+DETAILED CSC AND CSU DESCRIPTIONS:
+   Excellent job on this section ~ nothing to add here, although it would be
+   helpful to have a short explanation for each of the items in the lists.
+
+DETAILED CLASS DESCRIPTIONS:
+   More detail needed for this section.  See above comment.
+
+DETAILED INTERFACE DESCRIPTIONS:
+   More detail needed for this section.  See above comment.
+
+DETAILED DATA STRUCTURE DESCRIPTIONS:
+   More detail needed for this section.  See above comment.
+
+DETAILED DESIGN DIAGRAMS:
+   More detail needed for this section.
+
+DATABASE DESIGN AND DESCRIPTION:
+   Minimal information in this section.
+
+----------------------------------------------
+OVERALL ASSESSMENT:
+   Category                          Points
+   CSC/CSU Descriptions:                2 of  2
+   Class Descriptions:                  3 of  3
+   Interface Descriptions:              2 of  3
+   Data structure Descriptions:         1 of  1
+   Design diagrams:                     3 of  4
+   Database design/descriptions:        1 of  2
+                                     ===========
+   Subtotal                            12 of 15
+   ------------------------------------------------------
+   Total Percentage:  12/15 = 80% which is a B on this deliverable
+
+For detailed design, you should be specifying all of the parts of all of the
+sections/subsystems of your software.  Your diagrams are the same ones from
+the previous submission so there's no new detail in them.  Also, your detail
+sections don't really add much to the design descriptions you had already.
+
+For example, the architecture might give a list of classes and a sentence on
+what each one is for.  The detailed design would specify the list of classes
+with each one listing its fields and what they represent, along with methods
+in the classes and what they are responsible for.  There would be a matching
+diagram that shows the classes and their associations, including subclassing
+if applicable, and there would be text along with the diagrams to explain
+things like what types of fields are in any data structures that are passed
+as messages between classes or objects.  Database descriptions will have an
+ERD that shows the tables, primary keys, foreign keys, and also has data on
+protections and user roles allowed.
+
+THAT'S what goes into a 'detailed' design document.
