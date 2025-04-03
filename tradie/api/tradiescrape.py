@@ -69,14 +69,29 @@ def all_data():
     return dataframe
 
 def ceo():
-    filtered_dataframe_ceo = dataframe[(dataframe.iloc[:, 11] > 1) & (dataframe['title'] == 'CEO')]
+    filtered_dataframe_ceo = dataframe[(dataframe.iloc[:, 11] > 0) & (dataframe['title'] == 'CEO')]
     return filtered_dataframe_ceo
+
 def pres():
-    filtered_dataframe_pres = dataframe[(dataframe.iloc[:, 11] > 1) & (dataframe['title'] == 'Pres, CEO')]
+    filtered_dataframe_pres = dataframe[(dataframe.iloc[:, 11] > 0) & (dataframe['title'] == 'Pres, CEO')]
     return filtered_dataframe_pres
+
 def cfo():
-    filtered_dataframe_cfo = dataframe[(dataframe.iloc[:, 11] > 10) & (dataframe['title'] == 'CFO')]
+    filtered_dataframe_cfo = dataframe[(dataframe.iloc[:, 11] > 0) & (dataframe['title'] == 'CFO')]
     return filtered_dataframe_cfo
+
+def director():
+    # Filter for directors - look for 'Dir' in the title field
+    filtered_dataframe_dir = dataframe[(dataframe.iloc[:, 11] > 0) & 
+                                      (dataframe['title'].str.contains('Dir', case=False, na=False))]
+    return filtered_dataframe_dir
+
+def ten_percent_owner():
+    # Filter for 10% owners - look for '10%' or similar terms in the title field
+    filtered_dataframe_ten = dataframe[(dataframe.iloc[:, 11] > 0) & 
+                                      (dataframe['title'].str.contains('10%|10-Percent|10 Percent', 
+                                                                     case=False, regex=True, na=False))]
+    return filtered_dataframe_ten
 
 
 class TradeData(BaseModel):
@@ -118,3 +133,13 @@ def get_pres_data():
 def get_cfo_data():
     """Endpoint to trigger cfo data scraping"""
     return cfo().to_dict(orient='records')
+
+@app.get("/dir")
+def get_director_data():
+    """Endpoint to trigger director data scraping"""
+    return director().to_dict(orient='records')
+
+@app.get("/ten-percent")
+def get_ten_percent_data():
+    """Endpoint to trigger 10% owner data scraping"""
+    return ten_percent_owner().to_dict(orient='records')

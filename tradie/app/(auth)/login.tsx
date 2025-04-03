@@ -120,7 +120,7 @@ export default function LoginScreen() {
                   onChangeText={setEmail}
                   autoCapitalize="none"
                   keyboardType="email-address"
-                  placeholder="hello@example.com"
+                  placeholder="yo@momma.com"
                   placeholderTextColor="#9EA0A4"
                 />
               </View>

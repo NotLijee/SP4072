@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { router } from 'expo-router';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { getCurrentUser, getUserProfile, signOutUser } from '@/backend/auth';
 
@@ -26,6 +26,8 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserType | null>(null);
   const [profile, setProfile] = useState<ProfileType | null>(null);
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'dark'];
 
   useEffect(() => {
     fetchUserData();
@@ -89,23 +91,18 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2C3E50" />
+        <ActivityIndicator size="large" color="#4C6EF5" />
       </View>
     );
   }
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#F5F5F7', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="person.crop.circle.fill"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Profile</Text>
+        </View>
+
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
@@ -115,33 +112,33 @@ export default function ProfileScreen() {
             </View>
           </View>
           
-          <ThemedText style={styles.name}>
+          <Text style={styles.name}>
             {profile?.full_name || 'User'}
-          </ThemedText>
+          </Text>
           
-          <ThemedText style={styles.email}>
+          <Text style={styles.email}>
             {user?.email}
-          </ThemedText>
+          </Text>
         </View>
         
         <View style={styles.infoSection}>
-          <ThemedText style={styles.sectionTitle}>Account Information</ThemedText>
+          <Text style={styles.sectionTitle}>Account Information</Text>
           
           <View style={styles.infoItem}>
-            <ThemedText style={styles.infoLabel}>Email</ThemedText>
-            <ThemedText style={styles.infoValue}>{user?.email}</ThemedText>
+            <Text style={styles.infoLabel}>Email</Text>
+            <Text style={styles.infoValue}>{user?.email}</Text>
           </View>
           
           <View style={styles.infoItem}>
-            <ThemedText style={styles.infoLabel}>Name</ThemedText>
-            <ThemedText style={styles.infoValue}>{profile?.full_name || 'Not set'}</ThemedText>
+            <Text style={styles.infoLabel}>Name</Text>
+            <Text style={styles.infoValue}>{profile?.full_name || 'Not set'}</Text>
           </View>
           
           <View style={styles.infoItem}>
-            <ThemedText style={styles.infoLabel}>Member Since</ThemedText>
-            <ThemedText style={styles.infoValue}>
+            <Text style={styles.infoLabel}>Member Since</Text>
+            <Text style={styles.infoValue}>
               {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
-            </ThemedText>
+            </Text>
           </View>
         </View>
         
@@ -151,26 +148,34 @@ export default function ProfileScreen() {
         >
           <Text style={styles.signOutButtonText}>Sign Out</Text>
         </TouchableOpacity>
-      </ThemedView>
-    </ParallaxScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#121212',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+    backgroundColor: '#121212',
   },
   container: {
     flex: 1,
-    padding: 16,
+    padding: 24,
+  },
+  header: {
+    marginBottom: 30,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
   },
   profileHeader: {
     alignItems: 'center',
@@ -183,7 +188,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#2C3E50',
+    backgroundColor: '#4C6EF5',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -195,21 +200,25 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 24,
     fontWeight: '600',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   email: {
     fontSize: 16,
-    opacity: 0.7,
+    color: '#AEAEAE',
   },
   infoSection: {
     marginBottom: 30,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#1E1E1E',
     borderRadius: 12,
     padding: 16,
+    borderWidth: 1,
+    borderColor: '#333333',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#FFFFFF',
     marginBottom: 16,
   },
   infoItem: {
@@ -217,18 +226,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#EFEFEF',
+    borderBottomColor: '#333333',
   },
   infoLabel: {
     fontSize: 16,
-    opacity: 0.7,
+    color: '#AEAEAE',
   },
   infoValue: {
     fontSize: 16,
     fontWeight: '500',
+    color: '#FFFFFF',
   },
   signOutButton: {
-    backgroundColor: '#2C3E50',
+    backgroundColor: '#4C6EF5',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

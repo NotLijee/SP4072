@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 
-const FAST_API_URL = 'http://127.0.0.1:8000/'
+const FAST_API_URL = 'http://127.0.0.1:8000';
 
 export const getAllData = async () => {
     try {
@@ -41,4 +41,24 @@ export const getCfoData = async () => {
         console.error('Error fetching CFO data:', error);
         throw error;
     }
-}
+};
+
+export const getDirectorData = async () => {
+    try {
+        const response = await axios.get(`${FAST_API_URL}/dir`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching Director data:', error);
+        throw error;
+    }
+};
+
+export const getTenPercentData = async () => {
+    try {
+        const response = await axios.get(`${FAST_API_URL}/ten-percent`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching 10% Owner data:', error);
+        throw error;
+    }
+};
