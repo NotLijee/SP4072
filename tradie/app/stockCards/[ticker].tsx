@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,9 @@ import {
   Modal,
   SafeAreaView,
   StatusBar,
-  ActivityIndicator
+  ActivityIndicator,
+  Animated,
+  Easing
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
@@ -24,6 +26,35 @@ export default function StockDetails() {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Animation value for pulsing logo
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Start the pulsing animation when the component mounts
+  useEffect(() => {
+    // Only run the animation when loading
+    if (isLoading) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.2,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      // Stop the animation when loading is done
+      pulseAnim.stopAnimation();
+    }
+  }, [isLoading, pulseAnim]);
 
   // Function to open the modal and set the search text
   const handlePressInsiderName = (name: string) => {
@@ -122,7 +153,16 @@ export default function StockDetails() {
           <View style={styles.webViewContainer}>
             {isLoading && (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#4C6EF5" />
+                <Animated.Image 
+                  source={require('@/assets/images/TradieLogo-removebg-preview.png')}
+                  style={[
+                    styles.loadingLogo,
+                    {
+                      transform: [{ scale: pulseAnim }]
+                    }
+                  ]}
+                  resizeMode="contain"
+                />
               </View>
             )}
             <WebView
@@ -193,7 +233,7 @@ export default function StockDetails() {
               <IconSymbol size={24} name="xmark" color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Insider Details</Text>
-            <View style={styles.headerRight} />
+            <View style={styles.headerRight}/>
           </View>
 
           <WebView
@@ -362,6 +402,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1E1E1E',
     zIndex: 1,
+  },
+  loadingLogo: {
+    width: 80,
+    height: 80,
   },
   webView: {
     flex: 1,
