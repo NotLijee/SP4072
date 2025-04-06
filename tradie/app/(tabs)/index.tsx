@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -7,13 +7,18 @@ import {
   TouchableOpacity, 
   Dimensions, 
   ActivityIndicator,
-  SafeAreaView
+  SafeAreaView,
+  Image,
+  Animated,
+  Easing,
+  Alert
 } from 'react-native';
 import { Card } from 'react-native-ui-lib';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   getAllData, 
   getCeoData, 
@@ -24,6 +29,7 @@ import {
 } from '@/api/tradieAPI';
 
 const { width: screenWidth } = Dimensions.get('window');
+const FAVORITES_STORAGE_KEY = 'tradie_favorites';
 
 // Define sort options as an enum
 enum SortOrder {
@@ -47,6 +53,7 @@ interface TradeData {
   alreadyOwned: number;
   percentOwnedIncrease: number;
   moneyValueIncrease: number;
+  id?: string; // Optional unique identifier for each trade
 }
 
 export default function HomeScreen() {
@@ -59,9 +66,70 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('All');
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.NONE);
+  const [favorites, setFavorites] = useState<TradeData[]>([]);
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'dark'];
+
+  // Animation value for pulsing logo
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  
+  // Load favorites from AsyncStorage on component mount
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+  
+  // Reload favorites every time this screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+      return () => {
+        // Cleanup function if needed
+      };
+    }, [])
+  );
+  
+  // Extract loadFavorites to a separate function that can be reused
+  const loadFavorites = async () => {
+    try {
+      const savedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+      if (savedFavorites) {
+        const parsedFavorites = JSON.parse(savedFavorites);
+        // Ensure we're setting the correct type - TradeData[] instead of string[]
+        setFavorites(parsedFavorites);
+      } else {
+        // If no favorites found, set to empty array
+        setFavorites([]);
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+      // Set empty array on error
+      setFavorites([]);
+    }
+  };
+
+  // Start the pulsing animation when the component mounts
+  useEffect(() => {
+    // Only run the animation when loading
+    if (loading) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.2,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [loading, pulseAnim]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,13 +168,62 @@ export default function HomeScreen() {
     }
   };
 
-  // Function to get the data based on the active tab
+  //trade id 
+  const generateTradeId = (item: TradeData): string => {
+    return `${item.ticker}-${item.insiderName}-${item.tradeDate}-${item.quantity}-${item.price}`;
+  };
+
+  // Check if a trade is already in favorites
+  const isTradeInFavorites = (item: TradeData): boolean => {
+    const tradeId = generateTradeId(item);
+    return favorites.some(fav => generateTradeId(fav) === tradeId);
+  };
+
+  // Function to toggle favorite status of a stock card
+  const toggleFavorite = async (item: TradeData) => {
+    try {
+      const tradeId = generateTradeId(item);
+      let newFavorites: TradeData[];
+      
+      if (isTradeInFavorites(item)) {
+        // Remove from favorites if already present
+        newFavorites = favorites.filter(fav => generateTradeId(fav) !== tradeId);
+      } else {
+        // Add to favorites with a generated ID
+        const itemWithId = {
+          ...item,
+          id: tradeId
+        };
+        newFavorites = [...favorites, itemWithId];
+      }
+      
+      setFavorites(newFavorites);
+      
+      // Save to AsyncStorage
+      await AsyncStorage.setItem(
+        FAVORITES_STORAGE_KEY, 
+        JSON.stringify(newFavorites)
+      );
+      
+    
+      // Here you would also save to backend if user is logged in
+      // saveToBackend(newFavorites);
+      
+    } catch (error) {
+      console.error('Error saving favorite:', error);
+      Alert.alert('Error', 'Failed to save favorite');
+    }
+  };
+ //tabs 
   const getFilteredData = () => {
     let data: TradeData[] = [];
     
     switch (activeTab) {
       case 'CEO':
         data = ceoData || [];
+        break;
+      case 'Pres':
+        data = presData || [];
         break;
       case 'CFO':
         data = cfoData || [];
@@ -123,7 +240,7 @@ export default function HomeScreen() {
         break;
     }
 
-    // Apply sorting if needed
+    //sorting
     if (sortOrder !== SortOrder.NONE) {
       return [...data].sort((a, b) => {
         if (sortOrder === SortOrder.ASCENDING) {
@@ -139,10 +256,43 @@ export default function HomeScreen() {
 
   const filteredData = getFilteredData();
 
+  // Animation for the bookmark button
+  const animateBookmark = (ticker: string) => {
+    const scaleAnim = new Animated.Value(1);
+    
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 1.3,
+        duration: 150,
+        useNativeDriver: true,
+        easing: Easing.ease,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+        easing: Easing.ease,
+      }),
+    ]).start(() => {
+      toggleFavorite(ticker);
+    });
+    
+    return scaleAnim;
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4C6EF5" />
+        <Animated.Image 
+          source={require('@/assets/images/TradieLogo-removebg-preview.png')}
+          style={[
+            styles.loadingLogo,
+            {
+              transform: [{ scale: pulseAnim }]
+            }
+          ]}
+          resizeMode="contain"
+        />
       </View>
     );
   }
@@ -151,7 +301,11 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>Tradie</Text>
+          <Image 
+            source={require('@/assets/images/TradieLogo-removebg-preview.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.headerSubtitle}>Let's stalk insiders together.</Text>
         </View>
         
@@ -183,7 +337,7 @@ export default function HomeScreen() {
             <>
               {/* Category Tabs */}
               <View style={styles.tabsContainer}>
-                {['All', 'CEO', 'CFO', 'Dir', '10%'].map((tab) => (
+                {['All', 'CEO', 'Pres', 'CFO', 'Dir', '10%'].map((tab) => (
                   <TouchableOpacity
                     key={tab}
                     style={[
@@ -205,53 +359,74 @@ export default function HomeScreen() {
               </View>
               
               {filteredData.length > 0 ? (
-                filteredData.map((item, index) => (
-                  <TouchableOpacity 
-                    key={index}
-                    onPress={() =>
-                      router.push({
-                        pathname: `/stockCards/[ticker]`,
-                        params: {
-                          ticker: item.ticker,
-                          title: item.title,
-                          tradeType: item.tradeType,
-                          insiderName: item.insiderName,
-                          companyName: item.companyName,
-                          tradeDate: item.tradeDate,
-                          filingDate: item.filingDate,
-                          price: item.price.toString(),
-                          quantity: item.quantity.toString(),
-                          percentOwnedIncrease: item.percentOwnedIncrease.toString(),
-                          alreadyOwned: item.alreadyOwned,
-                          moneyValueIncrease: item.moneyValueIncrease,
-                        },
-                      })
-                    }
-                  >
-                    <Card style={styles.card}>
-                      <View style={styles.cardHeader}>
-                        <Text style={styles.insiderLabel}>Insider</Text>
-                        <Text style={styles.insiderName}>{item.insiderName}</Text>
-                        <Text style={styles.ticker}>Ticker: {item.ticker}</Text>
-                      </View>
+                filteredData.map((item, index) => {
+                  const isFavorite = isTradeInFavorites(item);
+                  
+                  return (
+                    <View key={index} style={styles.cardContainer}>
+                      {/* Bookmark Button */}
+                      <TouchableOpacity 
+                        style={styles.bookmarkButton}
+                        onPress={() => {
+                          toggleFavorite(item);
+                        }}
+                      >
+                        <View>
+                          <IconSymbol 
+                            size={24} 
+                            name={isFavorite ? "bookmark.fill" : "bookmark"} 
+                            color={isFavorite ? "#4C6EF5" : "#FFFFFF"} 
+                          />
+                        </View>
+                      </TouchableOpacity>
                       
-                      <View style={styles.cardFooter}>
-                        <View style={styles.footerItem}>
-                          <Text style={styles.percentText}>+{item.percentOwnedIncrease}%</Text>
-                          <Text style={styles.footerLabel}>% increase</Text>
-                        </View>
-                        <View style={styles.footerItem}>
-                          <Text style={styles.footerText}>{item.filingDate}</Text>
-                          <Text style={styles.footerLabel}>filing date</Text>
-                        </View>
-                        <View style={styles.footerItem}>
-                          <Text style={styles.footerText}>{item.tradeDate}</Text>
-                          <Text style={styles.footerLabel}>trade date</Text>
-                        </View>
-                      </View>
-                    </Card>
-                  </TouchableOpacity>
-                ))
+                      <TouchableOpacity 
+                        onPress={() =>
+                          router.push({
+                            pathname: `/stockCards/[ticker]`,
+                            params: {
+                              ticker: item.ticker,
+                              title: item.title,
+                              tradeType: item.tradeType,
+                              insiderName: item.insiderName,
+                              companyName: item.companyName,
+                              tradeDate: item.tradeDate,
+                              filingDate: item.filingDate,
+                              price: item.price.toString(),
+                              quantity: item.quantity.toString(),
+                              percentOwnedIncrease: item.percentOwnedIncrease.toString(),
+                              alreadyOwned: item.alreadyOwned,
+                              moneyValueIncrease: item.moneyValueIncrease,
+                            },
+                          })
+                        }
+                      >
+                        <Card style={styles.card}>
+                          <View style={styles.cardHeader}>
+                            <Text style={styles.insiderLabel}>Insider</Text>
+                            <Text style={styles.insiderName}>{item.insiderName}</Text>
+                            <Text style={styles.ticker}>Ticker: {item.ticker}</Text>
+                          </View>
+                          
+                          <View style={styles.cardFooter}>
+                            <View style={styles.footerItem}>
+                              <Text style={styles.percentText}>+{item.percentOwnedIncrease}%</Text>
+                              <Text style={styles.footerLabel}>% increase</Text>
+                            </View>
+                            <View style={styles.footerItem}>
+                              <Text style={styles.footerText}>{item.filingDate}</Text>
+                              <Text style={styles.footerLabel}>filing date</Text>
+                            </View>
+                            <View style={styles.footerItem}>
+                              <Text style={styles.footerText}>{item.tradeDate}</Text>
+                              <Text style={styles.footerLabel}>trade date</Text>
+                            </View>
+                          </View>
+                        </Card>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })
               ) : (
                 <View style={styles.noDataContainer}>
                   <Text style={styles.noDataText}>No insider trades found for this category</Text>
@@ -276,6 +451,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#121212',
   },
+  loadingLogo: {
+    width: 100,
+    height: 100,
+  },
   header: {
     paddingHorizontal: 24,
     paddingTop: 16,
@@ -287,11 +466,11 @@ const styles = StyleSheet.create({
   headerLeft: {
     flex: 1,
   },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 8,
+  logo: {
+    width: 150,
+    height: 70,
+    marginLeft: -45,
+    marginBottom: 3,
   },
   headerSubtitle: {
     fontSize: 16,
@@ -347,6 +526,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginRight: 6,
   },
+  cardContainer: {
+    position: 'relative',
+    marginVertical: 8,
+  },
+  bookmarkButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(30, 30, 30, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   noDataContainer: {
     padding: 24,
     alignItems: 'center',
@@ -361,7 +556,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   card: {
-    marginVertical: 8,
     width: screenWidth * 0.92,
     alignSelf: 'center',
     backgroundColor: '#1E1E1E',

@@ -104,6 +104,11 @@ export default function LoginScreen() {
       >
         <View style={styles.contentContainer}>
           <View style={styles.headerContainer}>
+          <Image 
+            source={require('@/assets/images/TradieLogo-removebg-preview.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
             <Text style={styles.headerTitle}>Tradie</Text>
             <Text style={styles.headerSubtitle}>Login and stalk insider trades</Text>
           </View>
@@ -225,9 +230,17 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 8,
   },
+  logo: {
+    width: 170,
+    height: 90,
+    marginLeft: -45,
+    marginBottom: -5,
+    marginTop: -45
+  },
   headerSubtitle: {
     fontSize: 16,
     color: '#AEAEAE',
+    marginBottom: -65,
   },
   errorText: {
     color: '#E74C3C',

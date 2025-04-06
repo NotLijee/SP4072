@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "expo-linear-gradient": "^14.0.2",
     "react-native-webview": "^13.13.2"
   }
 }
