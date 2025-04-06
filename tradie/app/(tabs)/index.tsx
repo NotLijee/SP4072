@@ -34,7 +34,6 @@ const FAVORITES_STORAGE_KEY = 'tradie_favorites';
 // Define sort options as an enum
 enum SortOrder {
   NONE = 'none',
-  ASCENDING = 'ascending',
   DESCENDING = 'descending'
 }
 
@@ -130,7 +129,7 @@ export default function HomeScreen() {
       ).start();
     }
   }, [loading, pulseAnim]);
-
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -160,8 +159,6 @@ export default function HomeScreen() {
   // Toggle sort order when sort button is pressed
   const toggleSortOrder = () => {
     if (sortOrder === SortOrder.NONE) {
-      setSortOrder(SortOrder.ASCENDING);
-    } else if (sortOrder === SortOrder.ASCENDING) {
       setSortOrder(SortOrder.DESCENDING);
     } else {
       setSortOrder(SortOrder.NONE);
@@ -333,8 +330,8 @@ export default function HomeScreen() {
       
       <ScrollView style={styles.scrollView}>
         <View style={styles.container}>
-          {allData && (
-            <>
+        {allData && (
+          <>
               {/* Category Tabs */}
               <View style={styles.tabsContainer}>
                 {['All', 'CEO', 'Pres', 'CFO', 'Dir', '10%'].map((tab) => (
@@ -381,49 +378,49 @@ export default function HomeScreen() {
                       </TouchableOpacity>
                       
                       <TouchableOpacity 
-                        onPress={() =>
-                          router.push({
+              onPress={() =>
+                router.push({
                             pathname: `/stockCards/[ticker]`,
-                            params: {
-                              ticker: item.ticker,
-                              title: item.title,
-                              tradeType: item.tradeType,
-                              insiderName: item.insiderName,
-                              companyName: item.companyName,
-                              tradeDate: item.tradeDate,
-                              filingDate: item.filingDate,
-                              price: item.price.toString(),
-                              quantity: item.quantity.toString(),
-                              percentOwnedIncrease: item.percentOwnedIncrease.toString(),
-                              alreadyOwned: item.alreadyOwned,
-                              moneyValueIncrease: item.moneyValueIncrease,
-                            },
-                          })
+                  params: {
+                    ticker: item.ticker,
+                    title: item.title,
+                    tradeType: item.tradeType,
+                    insiderName: item.insiderName,
+                    companyName: item.companyName,
+                    tradeDate: item.tradeDate,
+                    filingDate: item.filingDate,
+                    price: item.price.toString(),
+                    quantity: item.quantity.toString(),
+                    percentOwnedIncrease: item.percentOwnedIncrease.toString(),
+                    alreadyOwned: item.alreadyOwned,
+                    moneyValueIncrease: item.moneyValueIncrease,
+                  },
+                })
                         }
                       >
-                        <Card style={styles.card}>
+                <Card style={styles.card}>
                           <View style={styles.cardHeader}>
                             <Text style={styles.insiderLabel}>Insider</Text>
                             <Text style={styles.insiderName}>{item.insiderName}</Text>
                             <Text style={styles.ticker}>Ticker: {item.ticker}</Text>
                           </View>
                           
-                          <View style={styles.cardFooter}>
-                            <View style={styles.footerItem}>
-                              <Text style={styles.percentText}>+{item.percentOwnedIncrease}%</Text>
-                              <Text style={styles.footerLabel}>% increase</Text>
-                            </View>
-                            <View style={styles.footerItem}>
-                              <Text style={styles.footerText}>{item.filingDate}</Text>
-                              <Text style={styles.footerLabel}>filing date</Text>
-                            </View>
-                            <View style={styles.footerItem}>
-                              <Text style={styles.footerText}>{item.tradeDate}</Text>
-                              <Text style={styles.footerLabel}>trade date</Text>
-                            </View>
-                          </View>
-                        </Card>
-                      </TouchableOpacity>
+                  <View style={styles.cardFooter}>
+                    <View style={styles.footerItem}>
+                      <Text style={styles.percentText}>+{item.percentOwnedIncrease}%</Text>
+                      <Text style={styles.footerLabel}>% increase</Text>
+                    </View>
+                    <View style={styles.footerItem}>
+                        <Text style={styles.footerText}>{item.filingDate}</Text>
+                        <Text style={styles.footerLabel}>filing date</Text>
+                      </View>
+                    <View style={styles.footerItem}>
+                      <Text style={styles.footerText}>{item.tradeDate}</Text>
+                      <Text style={styles.footerLabel}>trade date</Text>
+                    </View>
+                  </View>
+                </Card>
+              </TouchableOpacity>
                     </View>
                   );
                 })
@@ -432,10 +429,10 @@ export default function HomeScreen() {
                   <Text style={styles.noDataText}>No insider trades found for this category</Text>
                 </View>
               )}
-            </>
-          )}
-        </View>
-      </ScrollView>
+          </>
+        )}
+      </View>
+    </ScrollView>
     </SafeAreaView>
   );
 }
@@ -581,7 +578,7 @@ const styles = StyleSheet.create({
   ticker: {
     fontSize: 16,
     color: '#FFFFFF',
-  },
+    },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -140,7 +140,7 @@ export default function StockDetails() {
             <Text style={styles.valueChange}>
               {Number(percentOwnedIncrease) > 0 ? '+' : ''}{percentOwnedIncrease}%
             </Text>
-            <Text style={styles.valueChangeLabel}>Position Change</Text>
+            <Text style={styles.valueChangeLabel}>Position Invested</Text>
           </View>
         </View>
 
