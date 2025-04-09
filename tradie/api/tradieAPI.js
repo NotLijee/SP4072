@@ -62,3 +62,13 @@ export const getTenPercentData = async () => {
         throw error;
     }
 };
+
+export const getAIAnalysis = async (ticker) => {
+    try {
+        const response = await axios.get(`${FAST_API_URL}/analysis/${ticker}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching AI analysis:', error);
+        throw error;
+    }
+};

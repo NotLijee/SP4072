@@ -62,6 +62,13 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="trade"
+          options={{
+            title: 'Trade',
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="dollarsign.circle.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
           name="explore"
           options={{
             title: 'Profile',

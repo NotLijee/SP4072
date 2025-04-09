@@ -228,14 +228,6 @@ export default function ProfileScreen() {
                 </Text>
               </View>
             </View>
-            
-            <Text style={styles.name}>
-              {profile?.full_name || 'User'}
-            </Text>
-            
-            <Text style={styles.email}>
-              {user?.email}
-            </Text>
           </View>
           
           <View style={styles.infoSection}>
@@ -330,15 +322,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   avatar: {
-    width: 100,
-    height: 100,
+    width: 50,
+    height: 50,
     borderRadius: 50,
     backgroundColor: '#4C6EF5',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: -25,
   },
   avatarText: {
-    fontSize: 40,
+    fontSize: 20,
     color: '#FFFFFF',
     fontWeight: 'bold',
   },

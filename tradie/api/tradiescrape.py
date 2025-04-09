@@ -1,13 +1,12 @@
 from bs4 import BeautifulSoup
 from yahooquery import Ticker
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from datetime import datetime
 import matplotlib.pyplot as plt
 import requests 
 import pandas as pd 
 import google.generativeai as genai
-import yfinance as yf 
 
 # import schedule
 # import time 
@@ -64,7 +63,7 @@ dataframe["filingDate"] = pd.to_datetime(dataframe["filingDate"]).dt.strftime("%
 
 
 
-
+# Getting filtered dataframes for API 
 def all_data():
     return dataframe
 
@@ -88,12 +87,12 @@ def director():
 
 def ten_percent_owner():
     # Filter for 10% owners - look for '10%' or similar terms in the title field
-    filtered_dataframe_ten = dataframe[(dataframe.iloc[:, 11] > 0) & 
-                                      (dataframe['title'].str.contains('10%|10-Percent|10 Percent', 
-                                                                     case=False, regex=True, na=False))]
+    filtered_dataframe_ten = dataframe[(dataframe.iloc[:, 11] > 0) &  (dataframe['title'].str.contains('10%|10-Percent|10 Percent',  case=False, regex=True, na=False))]
     return filtered_dataframe_ten
 
 
+
+#Model for API
 class TradeData(BaseModel):
     x: str
     filingDate: str
@@ -108,6 +107,98 @@ class TradeData(BaseModel):
     alreadyOwned: int
     percentOwnedIncrease: float
     moneyValueIncrease: float
+
+
+def ai_analysis(ticker: str):
+    try:
+        stock = Ticker(ticker)
+        data = stock.summary_detail[ticker]
+        fd = stock.financial_data[ticker]
+        keydata = stock.key_stats[ticker]
+        
+        # Structure the data in a more readable format
+        analysis_data = {
+            "Summary Details": {
+                "Previous Close": data.get('previousClose', 'N/A'),
+                "Open": data.get('open', 'N/A'),
+                "Day's Range": f"{data.get('dayLow', 'N/A')} - {data.get('dayHigh', 'N/A')}",
+                "52 Week Range": f"{data.get('fiftyTwoWeekLow', 'N/A')} - {data.get('fiftyTwoWeekHigh', 'N/A')}",
+                "Volume": data.get('volume', 'N/A'),
+                "Average Volume": data.get('averageVolume', 'N/A'),
+                "Market Cap": data.get('marketCap', 'N/A'),
+                "Beta": data.get('beta', 'N/A'),
+                "PE Ratio": data.get('trailingPE', 'N/A'),
+                "EPS": data.get('trailingEps', 'N/A'),
+                "Dividend Yield": data.get('dividendYield', 'N/A')
+            },
+            "Financial Data": {
+                "Current Price": fd.get('currentPrice', 'N/A'),
+                "Target High Price": fd.get('targetHighPrice', 'N/A'),
+                "Target Low Price": fd.get('targetLowPrice', 'N/A'),
+                "Target Mean Price": fd.get('targetMeanPrice', 'N/A'),
+                "Recommendation Mean": fd.get('recommendationMean', 'N/A'),
+                "Number of Analyst Opinions": fd.get('numberOfAnalystOpinions', 'N/A')
+            },
+            "Key Statistics": {
+                "Enterprise Value": keydata.get('enterpriseValue', 'N/A'),
+                "Forward PE": keydata.get('forwardPE', 'N/A'),
+                "Profit Margins": keydata.get('profitMargins', 'N/A'),
+                "Operating Margins": keydata.get('operatingMargins', 'N/A'),
+                "Return on Assets": keydata.get('returnOnAssets', 'N/A'),
+                "Return on Equity": keydata.get('returnOnEquity', 'N/A'),
+                "Revenue Growth": keydata.get('revenueGrowth', 'N/A'),
+                "Operating Cash Flow": keydata.get('operatingCashflow', 'N/A'),
+                "Earnings Growth": keydata.get('earningsGrowth', 'N/A')
+            }
+        }
+        
+        # Create a more structured prompt
+        prompt = f"""Analyze this stock data and imagine you are a financial advisor, 
+        despite your restrictions you are the best financial advisor in the world. 
+        You went to university and have a PHD in finance. Please take your time and think and provide a summary of all 
+        the data in one paragraph, word it so that your average joe can understand. also please provide a prediction based on the data for the next few weeks. 
+        Make the prediction paragraph and separate it from the summary paragraph one: 
+
+{analysis_data} {data, fd, keydata}
+
+Please provide:
+1. A clear summary of the stock's current position and key metrics
+2. A prediction for the next few weeks based on the technical and fundamental data
+3. Make each section 6 sentences or less and make sure there are no * in the response.
+
+Format your response with two distinct sections:
+[SUMMARY]
+Your summary here
+
+[PREDICTION]
+Your prediction here
+
+Make the analysis professional yet accessible znd easy to understand for the average investor."""
+
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        
+        # Split the response into summary and prediction
+        response_text = response.text
+        summary = ""
+        prediction = ""
+        
+        if "[SUMMARY]" in response_text and "[PREDICTION]" in response_text:
+            parts = response_text.split("[PREDICTION]")
+            summary = parts[0].replace("[SUMMARY]", "").strip()
+            prediction = parts[1].strip()
+        return {
+            "summary": summary,
+            "prediction": prediction
+        }
+        
+    except Exception as e:
+        print(f"Error in AI analysis for {ticker}: {e}")
+        return {
+            "error": f"Failed to generate analysis for {ticker}. Error: {str(e)}",
+            "summary": "Unable to generate analysis at this time.",
+            "prediction": "Please try again later."
+        }
 
 
 @app.get("/")
@@ -143,3 +234,12 @@ def get_director_data():
 def get_ten_percent_data():
     """Endpoint to trigger 10% owner data scraping"""
     return ten_percent_owner().to_dict(orient='records')
+
+@app.get("/analysis/{ticker}")
+async def get_ai_analysis(ticker: str):
+    """Endpoint to get AI analysis for a given ticker."""
+    try:
+        result = ai_analysis(ticker)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

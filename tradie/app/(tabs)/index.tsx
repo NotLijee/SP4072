@@ -31,13 +31,12 @@ import {
 const { width: screenWidth } = Dimensions.get('window');
 const FAVORITES_STORAGE_KEY = 'tradie_favorites';
 
-// Define sort options as an enum
 enum SortOrder {
   NONE = 'none',
-  DESCENDING = 'descending'
+  DESCENDING = 'descending',
+  ASCENDING = 'ascending'
 }
 
-// Define the TypeScript interface for the data
 interface TradeData {
   x: string;
   filingDate: string;
@@ -52,7 +51,7 @@ interface TradeData {
   alreadyOwned: number;
   percentOwnedIncrease: number;
   moneyValueIncrease: number;
-  id?: string; // Optional unique identifier for each trade
+  id?: string; 
 }
 
 export default function HomeScreen() {
@@ -94,7 +93,6 @@ export default function HomeScreen() {
       const savedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
       if (savedFavorites) {
         const parsedFavorites = JSON.parse(savedFavorites);
-        // Ensure we're setting the correct type - TradeData[] instead of string[]
         setFavorites(parsedFavorites);
       } else {
         // If no favorites found, set to empty array
@@ -107,7 +105,6 @@ export default function HomeScreen() {
     }
   };
 
-  // Start the pulsing animation when the component mounts
   useEffect(() => {
     // Only run the animation when loading
     if (loading) {
@@ -202,9 +199,7 @@ export default function HomeScreen() {
         JSON.stringify(newFavorites)
       );
       
-    
-      // Here you would also save to backend if user is logged in
-      // saveToBackend(newFavorites);
+  
       
     } catch (error) {
       console.error('Error saving favorite:', error);
@@ -312,14 +307,13 @@ export default function HomeScreen() {
           onPress={toggleSortOrder}
         >
           <Text style={styles.sortButtonText}>
-            {sortOrder === SortOrder.ASCENDING ? '↑ % Increase' : 
-             sortOrder === SortOrder.DESCENDING ? '↓ % Increase' : 
+            { 
+             sortOrder === SortOrder.DESCENDING ? ' % Increase' : 
              'Sort'}
           </Text>
           <IconSymbol
             size={16}
             name={
-              sortOrder === SortOrder.ASCENDING ? "arrow.up" :
               sortOrder === SortOrder.DESCENDING ? "arrow.down" :
               "arrow.up.arrow.down"
             }

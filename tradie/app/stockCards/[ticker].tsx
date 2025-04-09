@@ -11,13 +11,22 @@ import {
   StatusBar,
   ActivityIndicator,
   Animated,
-  Easing
+  Easing,
+  Alert
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { getAIAnalysis } from '@/api/tradieAPI';
+
+// Define the structure for the analysis response
+interface AnalysisResponse {
+  summary: string;
+  prediction: string;
+  error?: string;
+}
 
 export default function StockDetails() {
   const router = useRouter();
@@ -25,36 +34,27 @@ export default function StockDetails() {
   const colors = Colors[colorScheme ?? 'dark'];
   const [modalVisible, setModalVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isChartLoading, setIsChartLoading] = useState(true);
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
   
   // Animation value for pulsing logo
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Start the pulsing animation when the component mounts
   useEffect(() => {
-    // Only run the animation when loading
-    if (isLoading) {
+    if (isChartLoading) {
+      // Start animation
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.2,
-            duration: 800,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 800,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
+          Animated.timing(pulseAnim, { toValue: 1.2, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       ).start();
     } else {
-      // Stop the animation when loading is done
       pulseAnim.stopAnimation();
     }
-  }, [isLoading, pulseAnim]);
+  }, [isChartLoading, pulseAnim]);
 
   // Function to open the modal and set the search text
   const handlePressInsiderName = (name: string) => {
@@ -77,11 +77,41 @@ export default function StockDetails() {
     tradeType = 'Purchase',
   } = useLocalSearchParams();
 
-  // Parse tradeType to ensure it's a string for safe operations
   const tradeTypeString = Array.isArray(tradeType) ? tradeType[0] : String(tradeType);
 
   const handleBackPress = () => {
     router.back();
+  };
+
+  // Function to fetch AI analysis using tradieAPI
+  const fetchAnalysis = async () => {
+    if (!ticker) return; 
+    
+    setIsAnalysisLoading(true);
+    setAnalysisResult(null); // Clear previous result
+    try {
+      const result = await getAIAnalysis(String(ticker));
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      setAnalysisResult({
+        summary: result.summary || "No summary available",
+        prediction: result.prediction || "No prediction available"
+      });
+    } catch (error) {
+      console.error("Error fetching analysis:", error);
+      const errorMessage = error instanceof Error ? error.message : "Could not load AI analysis. Please try again later.";
+      Alert.alert("Error", errorMessage);
+      setAnalysisResult({ 
+        summary: "Unable to generate analysis at this time.",
+        prediction: "Please try again later.",
+        error: errorMessage 
+      });
+    } finally {
+      setIsAnalysisLoading(false);
+    }
   };
 
   return (
@@ -151,7 +181,7 @@ export default function StockDetails() {
           </View>
           
           <View style={styles.webViewContainer}>
-            {isLoading && (
+            {isChartLoading && (
               <View style={styles.loadingContainer}>
                 <Animated.Image 
                   source={require('@/assets/images/TradieLogo-removebg-preview.png')}
@@ -168,7 +198,7 @@ export default function StockDetails() {
             <WebView
               source={{ uri: `https://finance.yahoo.com/chart/${ticker}` }}
               style={styles.webView}
-              onLoadEnd={() => setIsLoading(false)}
+              onLoadEnd={() => setIsChartLoading(false)}
             />
           </View>
         </View>
@@ -195,7 +225,7 @@ export default function StockDetails() {
             
             <View style={styles.detailItem}>
               <Text style={styles.detailValue}>{alreadyOwned}</Text>
-              <Text style={styles.detailLabel}>PREV. OWNED</Text>
+              <Text style={styles.detailLabel}>NOW OWNED</Text>
             </View>
           </View>
         </View>
@@ -213,9 +243,34 @@ export default function StockDetails() {
           </View>
         </View>
         
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>View Trading History</Text>
-        </TouchableOpacity>
+        {/* AI Analysis Section */}
+        <View style={styles.analysisSection}>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={fetchAnalysis}
+            disabled={isAnalysisLoading}
+          >
+            {isAnalysisLoading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.actionButtonText}>Get AI Stock Analysis</Text>
+            )}
+          </TouchableOpacity>
+          
+          {analysisResult && (
+            <View style={styles.analysisContent}>
+              <View style={styles.analysisBlock}>
+                <Text style={styles.analysisTitle}>Summary</Text>
+                <Text style={styles.analysisText}>{analysisResult.summary}</Text>
+              </View>
+              
+              <View style={styles.analysisBlock}>
+                <Text style={styles.analysisTitle}>Prediction</Text>
+                <Text style={styles.analysisText}>{analysisResult.prediction}</Text>
+              </View>
+            </View>
+          )}
+        </View>
       </ScrollView>
 
       {/* Modal for insider search */}
@@ -469,6 +524,33 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
+  analysisSection: {
+    marginTop: 16,
+  },
+  analysisContent: {
+    backgroundColor: '#1E1E1E',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#333333',
+  },
+  analysisTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  analysisText: {
+    fontSize: 16,
+    color: '#AEAEAE',
+    lineHeight: 20,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#ff4d4f', // Red color for errors
+    textAlign: 'center',
+  },
   actionButton: {
     backgroundColor: '#4C6EF5',
     borderRadius: 8,
@@ -505,5 +587,13 @@ const styles = StyleSheet.create({
   },
   modalWebView: {
     flex: 1,
+  },
+  analysisBlock: {
+    marginBottom: 16,
+    padding: 16,
+    backgroundColor: '#1E1E1E',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333333',
   },
 }); 
