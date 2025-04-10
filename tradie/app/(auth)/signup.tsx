@@ -116,7 +116,7 @@ export default function SignupScreen() {
                     style={styles.input}
                     value={name}
                     onChangeText={setName}
-                    placeholder="John Doe"
+                    placeholder="Joe Momma"
                     placeholderTextColor="#9EA0A4"
                   />
                 </View>
