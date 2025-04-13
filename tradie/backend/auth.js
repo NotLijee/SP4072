@@ -7,6 +7,9 @@ export const signUpUser = async (email, password, fullName) => {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: 'yourapp://',
+      }
     });
   
     if (authError) {
@@ -30,8 +33,6 @@ export const signUpUser = async (email, password, fullName) => {
       
       if (profileError) {
         console.error("Profile creation error:", profileError.message);
-        // We don't throw here because the auth user was already created
-        // In a production app, you might want to delete the auth user if this fails
       }
     }
     
@@ -48,6 +49,9 @@ export const signInUser = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: {
+        shouldCreateUser: false,
+      }
     });
   
     if (error) {
@@ -58,6 +62,41 @@ export const signInUser = async (email, password) => {
     return { data, error: null };
   } catch (error) {
     console.error("Signin error:", error.message);
+    return { data: null, error };
+  }
+}
+
+//Signing in with Google
+export const signInWithGoogle = async () => {
+  try {
+    // Get the hostname from environment or device IP
+    // For development in Expo, we use a deep link that will redirect back to Expo
+    const redirectUrl = 'exp://192.168.1.91:8081'; // Use your device's actual IP or configure your app scheme
+    
+    console.log('Starting Google OAuth with redirect URL:', redirectUrl);
+    
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: false,
+        // Add specific OAuth options
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      }
+    });
+    
+    if (error) {
+      console.error("Google signin error:", error.message);
+      throw error;
+    }
+    
+    console.log('OAuth initiated successfully, URL:', data?.url);
+    return { data, error: null };
+  } catch (error) {
+    console.error("Google signin error:", error.message);
     return { data: null, error };
   }
 }
@@ -80,6 +119,16 @@ export const signOutUser = async () => {
 //CHECK IF USER LOGGED IN 
 export const getCurrentUser = async () => {
   try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      throw sessionError;
+    }
+
+    if (!session) {
+      return { user: null, error: new Error('No active session') };
+    }
+
     const { data, error } = await supabase.auth.getUser();
     if (error) {
       throw error;

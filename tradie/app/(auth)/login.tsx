@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -10,20 +10,59 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
-  Pressable
+  Pressable,
+  Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { signInUser, resetPassword } from '../../backend/auth';
+import * as WebBrowser from 'expo-web-browser';
+import { signInUser, resetPassword, signInWithGoogle } from '../../backend/auth';
+import { supabase } from '../../backend/supabase';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+
+// Make sure we're ready for the redirect
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [keepSignedIn, setKeepSignedIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Add auth state change listener
+  useEffect(() => {
+    // Check if the user is already signed in
+    const checkSession = async () => {
+      console.log('Checking for existing session on login screen mount...');
+      const { data } = await supabase.auth.getSession();
+      
+      if (data?.session) {
+        console.log('Existing session found, redirecting to tabs...');
+        router.replace('/(tabs)');
+      } else {
+        console.log('No existing session found, staying on login screen');
+      }
+    };
+    
+    checkSession();
+    
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, !!session);
+      
+      if (event === 'SIGNED_IN' && session) {
+        console.log('User signed in, redirecting to tabs...');
+        router.replace('/(tabs)');
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   const handleLogin = async () => {
     // Reset error
@@ -54,6 +93,94 @@ export default function LoginScreen() {
       console.error('Login error:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setIsGoogleLoading(true);
+    
+    try {
+      console.log('Starting Google sign-in flow...');
+      const result = await signInWithGoogle();
+      
+      if (result.error) {
+        console.error('Error initiating Google sign-in:', result.error);
+        setError(typeof result.error === 'object' && result.error !== null && 'message' in result.error 
+          ? result.error.message as string 
+          : 'Failed to sign in with Google');
+        setIsGoogleLoading(false);
+        return;
+      }
+      
+      // Successfully initiated Google sign-in
+      if (result.data?.url) {
+        console.log('Opening auth URL in browser:', result.data.url);
+        
+        try {
+          // Use the device's actual IP here, matching what you used in the auth.js file
+          const redirectUrl = 'exp://192.168.1.91:8081';
+          console.log('Using redirect URL:', redirectUrl);
+          
+          // Open the URL in the browser
+          const response = await WebBrowser.openAuthSessionAsync(
+            result.data.url,
+            redirectUrl
+          );
+          
+          console.log('Browser auth session response:', response);
+          
+          if (response.type === 'success') {
+            console.log('Browser returned success, URL:', response.url);
+            
+            // Session check loop - check multiple times with delay
+            let tryCount = 0;
+            const maxTries = 5;
+            const checkSession = async () => {
+              if (tryCount >= maxTries) {
+                console.log(`Reached max session check attempts (${maxTries})`);
+                setError('Could not establish session after authentication. Please try again.');
+                setIsGoogleLoading(false);
+                return;
+              }
+              
+              console.log(`Checking for session (attempt ${tryCount + 1}/${maxTries})...`);
+              const { data: sessionData } = await supabase.auth.getSession();
+              console.log('Session check result:', sessionData);
+              
+              if (sessionData?.session) {
+                console.log('Valid session found, redirecting to tabs...');
+                // Navigate to main app screen
+                router.replace('/(tabs)');
+                setIsGoogleLoading(false);
+              } else {
+                console.log('No valid session found, waiting and trying again...');
+                tryCount++;
+                setTimeout(checkSession, 1000); // Wait 1 second before checking again
+              }
+            };
+            
+            // Start the session check loop
+            checkSession();
+          } else {
+            console.log('Auth canceled or failed:', response.type);
+            setError('Authentication was canceled or failed. Please try again.');
+            setIsGoogleLoading(false);
+          }
+        } catch (browserError) {
+          console.error('Browser error:', browserError);
+          setError('Failed to open authentication window');
+          setIsGoogleLoading(false);
+        }
+      } else {
+        console.log('No URL returned from signInWithGoogle');
+        setError('Could not initialize Google sign-in');
+        setIsGoogleLoading(false);
+      }
+    } catch (err) {
+      console.error('Google login error:', err);
+      setError('An unexpected error occurred with Google sign-in');
+      setIsGoogleLoading(false);
     }
   };
 
@@ -190,10 +317,18 @@ export default function LoginScreen() {
               <View style={styles.divider} />
             </View>
             
-            <TouchableOpacity style={styles.googleButton}>
-              <View style={styles.googleIconPlaceholder}>
-                <Text style={styles.googleIconText}>G</Text>
-              </View>
+            <TouchableOpacity 
+              style={styles.googleButton}
+              onPress={handleGoogleSignIn}
+              disabled={isGoogleLoading}
+            >
+              {isGoogleLoading ? (
+                <ActivityIndicator color="#000" style={{marginRight: 8}} />
+              ) : (
+                <View style={styles.googleIconPlaceholder}>
+                  <Text style={styles.googleIconText}>G</Text>
+                </View>
+              )}
               <Text style={styles.googleButtonText}>Continue with Google</Text>
             </TouchableOpacity>
           </View>

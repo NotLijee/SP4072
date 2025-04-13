@@ -11,7 +11,8 @@ import {
   Image,
   Animated,
   Easing,
-  Alert
+  Alert,
+  TextInput
 } from 'react-native';
 import { Card } from 'react-native-ui-lib';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -266,11 +267,42 @@ export default function HomeScreen() {
         easing: Easing.ease,
       }),
     ]).start(() => {
-      toggleFavorite(ticker);
+      // Pass the item from filteredData that matches the ticker
+      const item = filteredData.find(item => item.ticker === ticker);
+      if (item) {
+        toggleFavorite(item);
+      }
     });
     
     return scaleAnim;
   };
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [filteredResults, setFilteredResults] = useState<TradeData[]>([]);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    
+    if (query.trim() === '') {
+      setIsSearchActive(false);
+      return;
+    }
+    
+    setIsSearchActive(true);
+    const lowercaseQuery = query.toLowerCase();
+    
+    // Filter the data based on the search query
+    const results = filteredData.filter(item => 
+      item.ticker.toLowerCase().includes(lowercaseQuery) || 
+      item.insiderName.toLowerCase().includes(lowercaseQuery)
+    );
+    
+    setFilteredResults(results);
+  };
+
+  // Determine which data to display based on search
+  const dataToDisplay = isSearchActive ? filteredResults : filteredData;
 
   if (loading) {
     return (
@@ -326,6 +358,33 @@ export default function HomeScreen() {
         <View style={styles.container}>
         {allData && (
           <>
+              {/* Search Bar */}
+              <View style={styles.searchBar}>
+                <IconSymbol
+                  size={18}
+                  name="magnifyingglass"
+                  color="#9EA0A4"
+                />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search ticker or insider"
+                  placeholderTextColor="#666666"
+                  value={searchQuery}
+                  onChangeText={handleSearch}
+                />
+                {searchQuery.trim() !== '' && (
+                  <TouchableOpacity
+                    style={styles.clearButton}
+                    onPress={() => {
+                      setSearchQuery('');
+                      setIsSearchActive(false);
+                    }}
+                  >
+                    <IconSymbol size={14} name="xmark" color="#FFFFFF" />
+                  </TouchableOpacity>
+                )}
+              </View>
+              
               {/* Category Tabs */}
               <View style={styles.tabsContainer}>
                 {['All', 'CEO', 'Pres', 'CFO', 'Dir', '10%'].map((tab) => (
@@ -335,7 +394,14 @@ export default function HomeScreen() {
                       styles.tab,
                       activeTab === tab && styles.activeTab
                     ]}
-                    onPress={() => setActiveTab(tab)}
+                    onPress={() => {
+                      setActiveTab(tab);
+                      // Clear search when changing tabs
+                      if (isSearchActive) {
+                        setSearchQuery('');
+                        setIsSearchActive(false);
+                      }
+                    }}
                   >
                     <Text 
                       style={[
@@ -348,9 +414,10 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
-              
-              {filteredData.length > 0 ? (
-                filteredData.map((item, index) => {
+
+              {/* Display data based on search state */}
+              {dataToDisplay.length > 0 ? (
+                dataToDisplay.map((item, index) => {
                   const isFavorite = isTradeInFavorites(item);
                   
                   return (
@@ -372,55 +439,59 @@ export default function HomeScreen() {
                       </TouchableOpacity>
                       
                       <TouchableOpacity 
-              onPress={() =>
-                router.push({
-                            pathname: `/stockCards/[ticker]`,
-                  params: {
-                    ticker: item.ticker,
-                    title: item.title,
-                    tradeType: item.tradeType,
-                    insiderName: item.insiderName,
-                    companyName: item.companyName,
-                    tradeDate: item.tradeDate,
-                    filingDate: item.filingDate,
-                    price: item.price.toString(),
-                    quantity: item.quantity.toString(),
-                    percentOwnedIncrease: item.percentOwnedIncrease.toString(),
-                    alreadyOwned: item.alreadyOwned,
-                    moneyValueIncrease: item.moneyValueIncrease,
-                  },
-                })
+                        onPress={() =>
+                          router.push({
+                                    pathname: `/stockCards/[ticker]`,
+                            params: {
+                              ticker: item.ticker,
+                              title: item.title,
+                              tradeType: item.tradeType,
+                              insiderName: item.insiderName,
+                              companyName: item.companyName,
+                              tradeDate: item.tradeDate,
+                              filingDate: item.filingDate,
+                              price: item.price.toString(),
+                              quantity: item.quantity.toString(),
+                              percentOwnedIncrease: item.percentOwnedIncrease.toString(),
+                              alreadyOwned: item.alreadyOwned,
+                              moneyValueIncrease: item.moneyValueIncrease,
+                            },
+                          })
                         }
                       >
-                <Card style={styles.card}>
+                        <Card style={styles.card}>
                           <View style={styles.cardHeader}>
                             <Text style={styles.insiderLabel}>Insider</Text>
                             <Text style={styles.insiderName}>{item.insiderName}</Text>
                             <Text style={styles.ticker}>Ticker: {item.ticker}</Text>
                           </View>
                           
-                  <View style={styles.cardFooter}>
-                    <View style={styles.footerItem}>
-                      <Text style={styles.percentText}>+{item.percentOwnedIncrease}%</Text>
-                      <Text style={styles.footerLabel}>% increase</Text>
-                    </View>
-                    <View style={styles.footerItem}>
-                        <Text style={styles.footerText}>{item.filingDate}</Text>
-                        <Text style={styles.footerLabel}>filing date</Text>
-                      </View>
-                    <View style={styles.footerItem}>
-                      <Text style={styles.footerText}>{item.tradeDate}</Text>
-                      <Text style={styles.footerLabel}>trade date</Text>
-                    </View>
-                  </View>
-                </Card>
-              </TouchableOpacity>
+                          <View style={styles.cardFooter}>
+                            <View style={styles.footerItem}>
+                              <Text style={styles.percentText}>+{item.percentOwnedIncrease}%</Text>
+                              <Text style={styles.footerLabel}>% increase</Text>
+                            </View>
+                            <View style={styles.footerItem}>
+                                <Text style={styles.footerText}>{item.filingDate}</Text>
+                                <Text style={styles.footerLabel}>filing date</Text>
+                              </View>
+                            <View style={styles.footerItem}>
+                              <Text style={styles.footerText}>{item.tradeDate}</Text>
+                              <Text style={styles.footerLabel}>trade date</Text>
+                            </View>
+                          </View>
+                        </Card>
+                      </TouchableOpacity>
                     </View>
                   );
                 })
               ) : (
                 <View style={styles.noDataContainer}>
-                  <Text style={styles.noDataText}>No insider trades found for this category</Text>
+                  <Text style={styles.noDataText}>
+                    {isSearchActive 
+                      ? `No results found for "${searchQuery}"` 
+                      : 'No insider trades found for this category'}
+                  </Text>
                 </View>
               )}
           </>
@@ -598,5 +669,33 @@ const styles = StyleSheet.create({
   footerLabel: {
     fontSize: 12,
     color: '#9EA0A4',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    marginBottom: 14,
+    borderWidth: 0.5,
+    borderColor: '#333333',
+    marginTop: -15,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    color: '#FFFFFF',
+    fontSize: 13,
+  },
+  clearButton: {
+    padding: 4,
+    borderRadius: 10,
+    backgroundColor: '#333333',
+    height: 20,
+    width: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -165,6 +165,7 @@ Please provide:
 1. A clear summary of the stock's current position and key metrics
 2. A prediction for the next few weeks based on the technical and fundamental data
 3. Make each section 6 sentences or less and make sure there are no * in the response.
+4. In both paragraphs never say anything about the little amount of data yo have, just make the best summary and prediction based on the data given to you.
 
 Format your response with two distinct sections:
 [SUMMARY]
@@ -173,7 +174,7 @@ Your summary here
 [PREDICTION]
 Your prediction here
 
-Make the analysis professional yet accessible znd easy to understand for the average investor."""
+Make the analysis professional yet accessible and easy to understand for the average investor. Make sure the predictions are simple enough for a middle schooler to understand"""
 
         model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(prompt)
