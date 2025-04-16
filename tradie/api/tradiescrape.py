@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 from yahooquery import Ticker
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import date
 import matplotlib.pyplot as plt
 import requests 
 import pandas as pd 
@@ -90,7 +90,12 @@ def ten_percent_owner():
     filtered_dataframe_ten = dataframe[(dataframe.iloc[:, 11] > 0) &  (dataframe['title'].str.contains('10%|10-Percent|10 Percent',  case=False, regex=True, na=False))]
     return filtered_dataframe_ten
 
-
+def ticker_ytd(ticker: str):
+    today = date.today()
+    ticker = Ticker(ticker)
+    data = ticker.history(interval="1d", start="2024-01-01", end=today)
+    chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
+    return chart_data
 
 #Model for API
 class TradeData(BaseModel):
@@ -204,7 +209,7 @@ Make the analysis professional yet accessible and easy to understand for the ave
 
 @app.get("/")
 def home():
-    return {"message": "Welcome to the FastAPI Insider Trading API"}
+    return {"message": "Welcome to the Tradie FastAPI"}
 
 @app.get("/allData")
 def get_scrape_data():
@@ -235,6 +240,11 @@ def get_director_data():
 def get_ten_percent_data():
     """Endpoint to trigger 10% owner data scraping"""
     return ten_percent_owner().to_dict(orient='records')
+
+@app.get("/ticker-ytd/{ticker}")
+def get_ticker_json(ticker: str):
+    """Endpoint to trigger ticker json scraping"""
+    return ticker_ytd(ticker)
 
 @app.get("/analysis/{ticker}")
 async def get_ai_analysis(ticker: str):

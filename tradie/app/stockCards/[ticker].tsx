@@ -12,20 +12,29 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
-  Alert
+  Alert,
+  Dimensions
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { getAIAnalysis } from '@/api/tradieAPI';
+import { getAIAnalysis, getChartData } from '@/api/tradieAPI';
+import { LineChart } from 'react-native-svg-charts';
+import * as shape from 'd3-shape';
 
 // Define the structure for the analysis response
 interface AnalysisResponse {
   summary: string;
   prediction: string;
   error?: string;
+}
+
+// Define the chart data structure
+interface ChartDataPoint {
+  date: string;
+  close: number;
 }
 
 export default function StockDetails() {
@@ -37,24 +46,11 @@ export default function StockDetails() {
   const [isChartLoading, setIsChartLoading] = useState(true);
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [isCustomChartLoading, setIsCustomChartLoading] = useState(true);
   
   // Animation value for pulsing logo
   const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  // Start the pulsing animation when the component mounts
-  useEffect(() => {
-    if (isChartLoading) {
-      // Start animation
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.2, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        ])
-      ).start();
-    } else {
-      pulseAnim.stopAnimation();
-    }
-  }, [isChartLoading, pulseAnim]);
 
   // Function to open the modal and set the search text
   const handlePressInsiderName = (name: string) => {
@@ -82,6 +78,40 @@ export default function StockDetails() {
   const handleBackPress = () => {
     router.back();
   };
+
+  // JSON DATA YEAR TO DATE 
+  useEffect(() => {
+    const fetchChartData = async () => {
+      if (!ticker) return;
+      
+      setIsCustomChartLoading(true);
+      try {
+        const data = await getChartData(String(ticker));
+        setChartData(data);
+      } catch (error) {
+        console.error('Error fetching chart data:', error);
+      } finally {
+        setIsCustomChartLoading(false);
+      }
+    };
+    
+    fetchChartData();
+  }, [ticker]);
+
+  // Start the pulsing animation when the component mounts
+  useEffect(() => {
+    if (isChartLoading) {
+      // Start animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.2, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.stopAnimation();
+    }
+  }, [isChartLoading, pulseAnim]);
 
   // Function to fetch AI analysis using tradieAPI
   const fetchAnalysis = async () => {
@@ -202,6 +232,44 @@ export default function StockDetails() {
             />
           </View>
         </View>
+        
+        {/* Custom SVG Chart */}
+        <View style={styles.chartContainer}>
+          <View style={styles.chartHeader}>
+            <Text style={styles.chartTitle}>Custom Price Chart</Text>
+          </View>
+          
+          <View style={styles.customChartContainer}>
+            {isCustomChartLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#4C6EF5" />
+              </View>
+            ) : chartData.length > 0 ? (
+              <>
+                <LineChart
+                  style={{ height: 200, width: '100%' }}
+                  data={chartData.map(item => item.close)}
+                  curve={shape.curveNatural}
+                  svg={{ 
+                    stroke: chartData.length > 1 && 
+                           chartData[chartData.length - 1].close > chartData[0].close 
+                           ? '#4ade80' // Green for price increase
+                           : '#ef4444', // Red for price decrease
+                    strokeWidth: 2 
+                  }}
+                  contentInset={{ top: 20, bottom: 20, left: 0, right: 0 }}
+                >
+                </LineChart>
+                <Text style={styles.chartCaption}>YTD</Text>
+              </>
+            ) : (
+              <View style={styles.noDataContainer}>
+                <Text style={styles.noDataText}>No chart data available</Text>
+              </View>
+            )}
+          </View>
+        </View>
+        
 
         {/* Trade Details */}
         <View style={styles.detailsSection}>
@@ -253,7 +321,7 @@ export default function StockDetails() {
             {isAnalysisLoading ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.actionButtonText}>Get AI Stock Analysis</Text>
+              <Text style={styles.actionButtonText}>Get Stock Analysis</Text>
             )}
           </TouchableOpacity>
           
@@ -595,5 +663,31 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#333333',
+  },
+  customChartContainer: {
+    height: 250,
+    width: '100%',
+    position: 'relative',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    padding: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#333333',
+  },
+  chartCaption: {
+    fontSize: 12,
+    color: '#AEAEAE',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noDataText: {
+    fontSize: 14,
+    color: '#AEAEAE',
   },
 }); 
