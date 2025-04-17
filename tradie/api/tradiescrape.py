@@ -3,6 +3,8 @@ from yahooquery import Ticker
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from datetime import date
+from dateutil.relativedelta import relativedelta
+
 import matplotlib.pyplot as plt
 import requests 
 import pandas as pd 
@@ -93,7 +95,46 @@ def ten_percent_owner():
 def ticker_ytd(ticker: str):
     today = date.today()
     ticker = Ticker(ticker)
-    data = ticker.history(interval="1d", start="2024-01-01", end=today)
+    data = ticker.history(interval="1wk", start="2024-01-01", end=today)
+    chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
+    return chart_data
+
+def ticker_one_year(ticker: str):
+    today = date.today()
+    one_year_ago = today - relativedelta(years=1)
+    ticker = Ticker(ticker)
+    data = ticker.history(interval="1wk", start=one_year_ago, end=today)
+    chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
+    return chart_data
+
+def ticker_three_month(ticker: str):
+    today = date.today()
+    three_month_ago = today - relativedelta(months=3)
+    ticker = Ticker(ticker)
+    data = ticker.history(interval="1d", start=three_month_ago, end=today)
+    chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
+    return chart_data
+
+def ticker_one_month(ticker: str):
+    today = date.today()
+    one_month_ago = today - relativedelta(months=1)
+    ticker = Ticker(ticker)
+    data = ticker.history(interval="1d", start=one_month_ago, end=today)
+    chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
+    return chart_data
+
+def ticker_one_week(ticker: str):
+    today = date.today()
+    one_week_ago = today - relativedelta(weeks=1)
+    ticker = Ticker(ticker)
+    data = ticker.history(interval="1d", start=one_week_ago, end=today)
+    chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
+    return chart_data
+
+def ticker_one_day(ticker: str):
+    today = date.today()
+    ticker = Ticker(ticker)
+    data = ticker.history(interval="1d", start=today, end=today)
     chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
     return chart_data
 
@@ -245,6 +286,31 @@ def get_ten_percent_data():
 def get_ticker_json(ticker: str):
     """Endpoint to trigger ticker json scraping"""
     return ticker_ytd(ticker)
+
+@app.get("/ticker-one-year/{ticker}")
+def get_ticker_one_year_json(ticker: str):
+    """Endpoint to trigger ticker one year json scraping"""
+    return ticker_one_year(ticker)
+
+@app.get("/ticker-three-month/{ticker}")
+def get_ticker_three_month_json(ticker: str):
+    """Endpoint to trigger ticker three month json scraping"""
+    return ticker_three_month(ticker)
+
+@app.get("/ticker-one-month/{ticker}")
+def get_ticker_one_month_json(ticker: str):
+    """Endpoint to trigger ticker one month json scraping"""
+    return ticker_one_month(ticker)
+
+@app.get("/ticker-one-week/{ticker}")
+def get_ticker_one_week_json(ticker: str):
+    """Endpoint to trigger ticker one week json scraping"""
+    return ticker_one_week(ticker)
+
+@app.get("/ticker-one-day/{ticker}")
+def get_ticker_one_day_json(ticker: str):
+    """Endpoint to trigger ticker one day json scraping"""
+    return ticker_one_day(ticker)
 
 @app.get("/analysis/{ticker}")
 async def get_ai_analysis(ticker: str):

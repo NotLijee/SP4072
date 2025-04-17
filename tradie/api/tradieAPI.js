@@ -63,6 +63,16 @@ export const getTenPercentData = async () => {
     }
 };
 
+export const getAIAnalysis = async (ticker) => {
+    try {
+        const response = await axios.get(`${FAST_API_URL}/analysis/${ticker}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching AI analysis:', error);
+        throw error;
+    }
+};
+
 export const getChartData = async (ticker) => {
     try {
         const response = await axios.get(`${FAST_API_URL}/ticker-ytd/${ticker}`);
@@ -72,12 +82,53 @@ export const getChartData = async (ticker) => {
         throw error;
     }
 };
-export const getAIAnalysis = async (ticker) => {
+
+export const getChartDataOneYear = async (ticker) => {
     try {
-        const response = await axios.get(`${FAST_API_URL}/analysis/${ticker}`);
+        const response = await axios.get(`${FAST_API_URL}/ticker-one-year/${ticker}`);
         return response.data;
     } catch (error) {
-        console.error('Error fetching AI analysis:', error);
+        console.error('Error fetching chart data:', error);
+        throw error;
+    }
+};
+
+export const getChartDataThreeMonth = async (ticker) => {
+    try {
+        const response = await axios.get(`${FAST_API_URL}/ticker-three-month/${ticker}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching chart data:', error);
+        throw error;
+    }
+};
+
+export const getChartDataOneMonth = async (ticker) => {
+    try {
+        const response = await axios.get(`${FAST_API_URL}/ticker-one-month/${ticker}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching chart data:', error);
+        throw error;
+    }
+};
+
+export const getChartDataOneWeek = async (ticker) => {
+    try {
+        const response = await axios.get(`${FAST_API_URL}/ticker-one-week/${ticker}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching chart data:', error);
+        throw error;
+    }
+};
+
+export const getChartDataOneDay = async (ticker) => {
+    try {
+        const response = await axios.get(`${FAST_API_URL}/ticker-one-day/${ticker}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching chart data:', error);
         throw error;
     }
 };

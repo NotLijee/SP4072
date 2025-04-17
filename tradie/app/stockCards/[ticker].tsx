@@ -20,7 +20,14 @@ import { WebView } from 'react-native-webview';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { getAIAnalysis, getChartData } from '@/api/tradieAPI';
+import { 
+  getAIAnalysis, 
+  getChartData, 
+  getChartDataOneWeek,
+  getChartDataOneMonth,
+  getChartDataThreeMonth,
+  getChartDataOneYear
+} from '@/api/tradieAPI';
 import { LineChart } from 'react-native-svg-charts';
 import * as shape from 'd3-shape';
 
@@ -37,20 +44,25 @@ interface ChartDataPoint {
   close: number;
 }
 
+// Define time period types
+type TimePeriod = '1w' | '1m' | '3m' | 'ytd' | '1y';
+
 export default function StockDetails() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'dark'];
   const [modalVisible, setModalVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [isChartLoading, setIsChartLoading] = useState(true);
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [isCustomChartLoading, setIsCustomChartLoading] = useState(true);
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('ytd');
+  const [animatedData, setAnimatedData] = useState<number[]>([]);
   
   // Animation value for pulsing logo
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const chartAnimation = useRef(new Animated.Value(0)).current;
 
   // Function to open the modal and set the search text
   const handlePressInsiderName = (name: string) => {
@@ -79,28 +91,95 @@ export default function StockDetails() {
     router.back();
   };
 
-  // JSON DATA YEAR TO DATE 
-  useEffect(() => {
-    const fetchChartData = async () => {
-      if (!ticker) return;
-      
-      setIsCustomChartLoading(true);
-      try {
-        const data = await getChartData(String(ticker));
-        setChartData(data);
-      } catch (error) {
-        console.error('Error fetching chart data:', error);
-      } finally {
-        setIsCustomChartLoading(false);
-      }
-    };
+  // Function to open Yahoo Finance chart
+  const openYahooFinance = () => {
+    setSearchText(`https://finance.yahoo.com/chart/${ticker}`);
+    setModalVisible(true);
+  };
+
+  // Function to fetch chart data based on selected time period
+  const fetchChartDataByTimePeriod = async (period: TimePeriod) => {
+    if (!ticker) return;
     
-    fetchChartData();
+    setIsCustomChartLoading(true);
+    setAnimatedData([]); // Reset animated data
+    
+    try {
+      let data;
+      switch (period) {
+        case '1w':
+          data = await getChartDataOneWeek(String(ticker));
+          break;
+        case '1m':
+          data = await getChartDataOneMonth(String(ticker));
+          break;
+        case '3m':
+          data = await getChartDataThreeMonth(String(ticker));
+          break;
+        case '1y':
+          data = await getChartDataOneYear(String(ticker));
+          break;
+        case 'ytd':
+        default:
+          data = await getChartData(String(ticker));
+          break;
+      }
+      setChartData(data);
+      
+      // Start animation after data is loaded
+      if (data.length > 0) {
+        chartAnimation.setValue(0);
+        
+        // Start the animation
+        Animated.timing(chartAnimation, {
+          toValue: 1,
+          duration: 500,
+          easing: Easing.ease,
+          useNativeDriver: false
+        }).start();
+      }
+    } catch (error) {
+      console.error(`Error fetching ${period} chart data:`, error);
+      setChartData([]);
+    } finally {
+      setIsCustomChartLoading(false);
+    }
+  };
+
+  // Handle time period button press
+  const handleTimePeriodChange = (period: TimePeriod) => {
+    setSelectedTimePeriod(period);
+    fetchChartDataByTimePeriod(period);
+  };
+
+  // Animate the chart data
+  useEffect(() => {
+    if (chartData.length > 0) {
+      const listener = chartAnimation.addListener(({ value }) => {
+        // Calculate how many points to show based on animation progress
+        const pointsToShow = Math.floor(value * chartData.length);
+        // Create array with only the points we want to show
+        const animData = chartData
+          .slice(0, pointsToShow)
+          .map(item => item.close);
+          
+        setAnimatedData(animData);
+      });
+      
+      return () => {
+        chartAnimation.removeListener(listener);
+      };
+    }
+  }, [chartData, chartAnimation]);
+
+  // Fetch chart data when component mounts or ticker changes
+  useEffect(() => {
+    fetchChartDataByTimePeriod(selectedTimePeriod);
   }, [ticker]);
 
   // Start the pulsing animation when the component mounts
   useEffect(() => {
-    if (isChartLoading) {
+    if (isCustomChartLoading) {
       // Start animation
       Animated.loop(
         Animated.sequence([
@@ -111,7 +190,7 @@ export default function StockDetails() {
     } else {
       pulseAnim.stopAnimation();
     }
-  }, [isChartLoading, pulseAnim]);
+  }, [isCustomChartLoading, pulseAnim]);
 
   // Function to fetch AI analysis using tradieAPI
   const fetchAnalysis = async () => {
@@ -165,10 +244,10 @@ export default function StockDetails() {
         {/* Company and Insider Info */}
         <View style={styles.companyContainer}>
           <View style={styles.companyHeader}>
-            <View>
+            <TouchableOpacity onPress={openYahooFinance}>
               <Text style={styles.companyName}>{companyName}</Text>
               <Text style={styles.tickerSymbol}>{ticker}</Text>
-            </View>
+            </TouchableOpacity>
           </View>
           
           <View style={styles.insiderInfo}>
@@ -204,14 +283,81 @@ export default function StockDetails() {
           </View>
         </View>
 
-        {/* Chart */}
+        {/* Custom SVG Chart - now the only chart */}
         <View style={styles.chartContainer}>
           <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Stock Chart</Text>
+            <Text style={styles.chartTitle}>Stock Price Chart</Text>
           </View>
           
-          <View style={styles.webViewContainer}>
-            {isChartLoading && (
+          <View style={styles.timePeriodSelector}>
+            <TouchableOpacity
+              style={[
+                styles.timePeriodButton,
+                selectedTimePeriod === '1w' && styles.selectedTimePeriodButton
+              ]}
+              onPress={() => handleTimePeriodChange('1w')}
+            >
+              <Text style={[
+                styles.timePeriodButtonText,
+                selectedTimePeriod === '1w' && styles.selectedTimePeriodText
+              ]}>1W</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.timePeriodButton,
+                selectedTimePeriod === '1m' && styles.selectedTimePeriodButton
+              ]}
+              onPress={() => handleTimePeriodChange('1m')}
+            >
+              <Text style={[
+                styles.timePeriodButtonText,
+                selectedTimePeriod === '1m' && styles.selectedTimePeriodText
+              ]}>1M</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.timePeriodButton,
+                selectedTimePeriod === '3m' && styles.selectedTimePeriodButton
+              ]}
+              onPress={() => handleTimePeriodChange('3m')}
+            >
+              <Text style={[
+                styles.timePeriodButtonText,
+                selectedTimePeriod === '3m' && styles.selectedTimePeriodText
+              ]}>3M</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.timePeriodButton,
+                selectedTimePeriod === 'ytd' && styles.selectedTimePeriodButton
+              ]}
+              onPress={() => handleTimePeriodChange('ytd')}
+            >
+              <Text style={[
+                styles.timePeriodButtonText,
+                selectedTimePeriod === 'ytd' && styles.selectedTimePeriodText
+              ]}>YTD</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.timePeriodButton,
+                selectedTimePeriod === '1y' && styles.selectedTimePeriodButton
+              ]}
+              onPress={() => handleTimePeriodChange('1y')}
+            >
+              <Text style={[
+                styles.timePeriodButtonText,
+                selectedTimePeriod === '1y' && styles.selectedTimePeriodText
+              ]}>1Y</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.customChartContainer}>
+            {isCustomChartLoading ? (
               <View style={styles.loadingContainer}>
                 <Animated.Image 
                   source={require('@/assets/images/TradieLogo-removebg-preview.png')}
@@ -224,31 +370,11 @@ export default function StockDetails() {
                   resizeMode="contain"
                 />
               </View>
-            )}
-            <WebView
-              source={{ uri: `https://finance.yahoo.com/chart/${ticker}` }}
-              style={styles.webView}
-              onLoadEnd={() => setIsChartLoading(false)}
-            />
-          </View>
-        </View>
-        
-        {/* Custom SVG Chart */}
-        <View style={styles.chartContainer}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Custom Price Chart</Text>
-          </View>
-          
-          <View style={styles.customChartContainer}>
-            {isCustomChartLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#4C6EF5" />
-              </View>
             ) : chartData.length > 0 ? (
               <>
                 <LineChart
                   style={{ height: 200, width: '100%' }}
-                  data={chartData.map(item => item.close)}
+                  data={animatedData.length > 0 ? animatedData : chartData.map(item => item.close)}
                   curve={shape.curveNatural}
                   svg={{ 
                     stroke: chartData.length > 1 && 
@@ -260,7 +386,28 @@ export default function StockDetails() {
                   contentInset={{ top: 20, bottom: 20, left: 0, right: 0 }}
                 >
                 </LineChart>
-                <Text style={styles.chartCaption}>YTD</Text>
+                {chartData.length > 0 && (
+                  <View style={styles.chartDataInfo}>
+                    <Text style={styles.chartDateRange}>
+                      {selectedTimePeriod === '1w' ? 'The past week' : 
+                       selectedTimePeriod === '1m' ? 'The past month' : 
+                       selectedTimePeriod === '3m' ? 'The past three months' : 
+                       selectedTimePeriod === '1y' ? 'The past year' : 
+                       'Year to date'}
+                    </Text>
+                    <Text style={[
+                      styles.priceChange,
+                      chartData.length > 1 && chartData[chartData.length - 1].close > chartData[0].close 
+                        ? styles.priceUp 
+                        : styles.priceDown
+                    ]}>
+                      {chartData.length > 1 
+                        ? ((chartData[chartData.length - 1].close - chartData[0].close) / chartData[0].close * 100).toFixed(2) + '%'
+                        : '0.00%'
+                      }
+                    </Text>
+                  </View>
+                )}
               </>
             ) : (
               <View style={styles.noDataContainer}>
@@ -314,6 +461,12 @@ export default function StockDetails() {
         {/* AI Analysis Section */}
         <View style={styles.analysisSection}>
           <TouchableOpacity 
+            style={[styles.actionButton, styles.tradeButton]}
+          >
+            <Text style={styles.actionButtonText}>Buy {ticker}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
             style={styles.actionButton}
             onPress={fetchAnalysis}
             disabled={isAnalysisLoading}
@@ -361,7 +514,7 @@ export default function StockDetails() {
 
           <WebView
             source={{
-              uri: `https://www.google.com/search?q=${encodeURIComponent(searchText)}`,
+              uri: searchText,
             }}
             style={styles.modalWebView}
           />
@@ -625,6 +778,11 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     marginBottom: 16,
+    
+  },
+  tradeButton: {
+    backgroundColor: '#10B981', // Green color for trade button
+    marginTop: -25,
   },
   actionButtonText: {
     fontSize: 16,
@@ -664,8 +822,55 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#333333',
   },
+  timePeriodSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#282828',
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    padding: 4,
+  },
+  timePeriodButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  selectedTimePeriodButton: {
+    backgroundColor: '#4C6EF5',
+  },
+  timePeriodButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#AEAEAE',
+  },
+  selectedTimePeriodText: {
+    color: '#FFFFFF',
+  },
+  chartDataInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    marginTop: 12,
+  },
+  chartDateRange: {
+    fontSize: 12,
+    color: '#AEAEAE',
+  },
+  priceChange: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  priceUp: {
+    color: '#4ade80',
+  },
+  priceDown: {
+    color: '#ef4444',
+  },
   customChartContainer: {
-    height: 250,
+    height: 270,
     width: '100%',
     position: 'relative',
     backgroundColor: '#1A1A1A',
@@ -674,12 +879,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderWidth: 1,
     borderColor: '#333333',
-  },
-  chartCaption: {
-    fontSize: 12,
-    color: '#AEAEAE',
-    textAlign: 'center',
-    marginTop: 8,
   },
   noDataContainer: {
     flex: 1,
