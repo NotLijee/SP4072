@@ -15,6 +15,7 @@
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@alpacahq/alpaca-trade-api": "^3.1.3",
     "@clerk/clerk-expo": "^2.9.5",
     "@clerk/clerk-react": "^5.25.4",
     "@expo/vector-icons": "^14.0.2",

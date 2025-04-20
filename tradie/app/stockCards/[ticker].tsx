@@ -66,7 +66,7 @@ export default function StockDetails() {
 
   // Function to open the modal and set the search text
   const handlePressInsiderName = (name: string) => {
-    setSearchText(name);
+    setSearchText(`https://www.google.com/search?q=${encodeURIComponent(name)}`);
     setModalVisible(true);
   };
 
@@ -95,6 +95,11 @@ export default function StockDetails() {
   const openYahooFinance = () => {
     setSearchText(`https://finance.yahoo.com/chart/${ticker}`);
     setModalVisible(true);
+  };
+
+  // Function to navigate to trade screen
+  const navigateToTrade = () => {
+    router.push(`/(tabs)/trade`);
   };
 
   // Function to fetch chart data based on selected time period
@@ -286,7 +291,7 @@ export default function StockDetails() {
         {/* Custom SVG Chart - now the only chart */}
         <View style={styles.chartContainer}>
           <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Stock Price Chart</Text>
+            <Text style={styles.chartTitle}>{ticker}'s Performance</Text>
           </View>
           
           <View style={styles.timePeriodSelector}>
@@ -462,6 +467,7 @@ export default function StockDetails() {
         <View style={styles.analysisSection}>
           <TouchableOpacity 
             style={[styles.actionButton, styles.tradeButton]}
+            onPress={navigateToTrade}
           >
             <Text style={styles.actionButtonText}>Buy {ticker}</Text>
           </TouchableOpacity>
