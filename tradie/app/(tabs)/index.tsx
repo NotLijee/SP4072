@@ -38,6 +38,12 @@ enum SortOrder {
   ASCENDING = 'ascending'
 }
 
+enum TradeDate {
+  None = 'none',
+  Descending = 'descending',
+  Ascending = 'ascending'
+}
+
 interface TradeData {
   x: string;
   filingDate: string;
@@ -65,6 +71,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('All');
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.NONE);
+  const [tradeDate, setTradeDate] = useState<TradeDate>(TradeDate.None);
   const [favorites, setFavorites] = useState<TradeData[]>([]);
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -73,17 +80,15 @@ export default function HomeScreen() {
   // Animation value for pulsing logo
   const pulseAnim = useRef(new Animated.Value(1)).current;
   
-  // Load favorites from AsyncStorage on component mount
   useEffect(() => {
     loadFavorites();
   }, []);
   
-  // Reload favorites every time this screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadFavorites();
       return () => {
-        // Cleanup function if needed
+        
       };
     }, [])
   );
@@ -158,8 +163,29 @@ export default function HomeScreen() {
   const toggleSortOrder = () => {
     if (sortOrder === SortOrder.NONE) {
       setSortOrder(SortOrder.DESCENDING);
+      // Reset trade date sort if activating percentage sort
+      if (tradeDate !== TradeDate.None) {
+        setTradeDate(TradeDate.None);
+      }
     } else {
       setSortOrder(SortOrder.NONE);
+    }
+  };
+
+  const toggleTradeDate = () => {
+    if (tradeDate === TradeDate.None) {
+      setTradeDate(TradeDate.Descending);
+      // Reset percentage sort if activating trade date sort
+      if (sortOrder !== SortOrder.NONE) {
+        setSortOrder(SortOrder.NONE);
+      }
+    } else {
+      setTradeDate(TradeDate.None);
+    }
+    
+    // Force update for search results if search is active
+    if (isSearchActive && searchQuery) {
+      handleSearch(searchQuery);
     }
   };
 
@@ -210,6 +236,7 @@ export default function HomeScreen() {
  //tabs 
   const getFilteredData = () => {
     let data: TradeData[] = [];
+
     
     switch (activeTab) {
       case 'CEO':
@@ -233,9 +260,66 @@ export default function HomeScreen() {
         break;
     }
 
-    //sorting
-    if (sortOrder !== SortOrder.NONE) {
-      return [...data].sort((a, b) => {
+    // First sort by trade date if needed
+    if (tradeDate !== TradeDate.None) {
+      data = [...data].sort((a, b) => {
+        try {
+          // Convert dates to Date objects for proper comparison
+          const parseDate = (dateStr: string) => {
+            // Handle different formats (MM/DD/YY or YYYY-MM-DD)
+            const parts = dateStr.split(/[-/]/);
+            
+            if (parts.length === 3) {
+              // Check format - if first part is 4 digits, assume YYYY-MM-DD
+              if (parts[0].length === 4) {
+                // YYYY-MM-DD format
+                return new Date(
+                  parseInt(parts[0]), 
+                  parseInt(parts[1]) - 1, 
+                  parseInt(parts[2])
+                );
+              } else {
+                // MM/DD/YY format - expand year to 4 digits if needed
+                let year = parseInt(parts[2]);
+                if (year < 100) {
+                  // Assume 20xx for years less than 100
+                  year += 2000;
+                }
+                return new Date(
+                  year,
+                  parseInt(parts[0]) - 1,
+                  parseInt(parts[1])
+                );
+              }
+            }
+            
+            // Fallback: try standard parsing
+            return new Date(dateStr);
+          };
+          
+          const dateA = parseDate(a.tradeDate);
+          const dateB = parseDate(b.tradeDate);
+          
+          // Compare timestamps for descending/ascending order
+          if (tradeDate === TradeDate.Descending) {
+            return dateB.getTime() - dateA.getTime();
+          } else {
+            return dateA.getTime() - dateB.getTime();
+          }
+        } catch (error) {
+          console.error('Error parsing dates:', error);
+          // Fallback to string comparison if parsing fails
+          return tradeDate === TradeDate.Descending 
+            ? b.tradeDate.localeCompare(a.tradeDate) 
+            : a.tradeDate.localeCompare(b.tradeDate);
+        }
+      });
+      
+      console.log('Sorted by date', data.slice(0, 5).map(item => item.tradeDate));
+    }
+    // Then sort by percentage increase if needed
+    else if (sortOrder !== SortOrder.NONE) {
+      data = [...data].sort((a, b) => {
         if (sortOrder === SortOrder.ASCENDING) {
           return a.percentOwnedIncrease - b.percentOwnedIncrease;
         } else {
@@ -333,25 +417,45 @@ export default function HomeScreen() {
           <Text style={styles.headerSubtitle}>Let's stalk insiders together.</Text>
         </View>
         
-        {/* Sort Button in Header */}
-        <TouchableOpacity
-          style={styles.sortButton}
-          onPress={toggleSortOrder}
-        >
-          <Text style={styles.sortButtonText}>
-            { 
-             sortOrder === SortOrder.DESCENDING ? ' % Increase' : 
-             'Sort'}
-          </Text>
-          <IconSymbol
-            size={16}
-            name={
-              sortOrder === SortOrder.DESCENDING ? "arrow.down" :
-              "arrow.up.arrow.down"
-            }
-            color="#FFFFFF"
-          />
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          {/* Trade Date Sort Button */}
+          <TouchableOpacity
+            style={[styles.sortButton, styles.tradeDateButton]}
+            onPress={toggleTradeDate}
+          >
+            <Text style={styles.sortButtonText}>
+              {tradeDate === TradeDate.Descending ? 'Recent' : 'Date'}
+            </Text>
+            <IconSymbol
+              size={16}
+              name={
+                tradeDate === TradeDate.Descending ? "calendar" :
+                "calendar.badge.clock"
+              }
+              color="#FFFFFF"
+            />
+          </TouchableOpacity>
+          
+          {/* Sort Button in Header */}
+          <TouchableOpacity
+            style={styles.sortButton}
+            onPress={toggleSortOrder}
+          >
+            <Text style={styles.sortButtonText}>
+              { 
+              sortOrder === SortOrder.DESCENDING ? ' % Increase' : 
+              'Sort'}
+            </Text>
+            <IconSymbol
+              size={16}
+              name={
+                sortOrder === SortOrder.DESCENDING ? "arrow.down" :
+                "arrow.up.arrow.down"
+              }
+              color="#FFFFFF"
+            />
+          </TouchableOpacity>
+        </View>
       </View>
       
       <ScrollView style={styles.scrollView}>
@@ -475,9 +579,18 @@ export default function HomeScreen() {
                                 <Text style={styles.footerText}>{item.filingDate}</Text>
                                 <Text style={styles.footerLabel}>filing date</Text>
                               </View>
-                            <View style={styles.footerItem}>
-                              <Text style={styles.footerText}>{item.tradeDate}</Text>
-                              <Text style={styles.footerLabel}>trade date</Text>
+                            <View style={[
+                              styles.footerItem,
+                              tradeDate !== TradeDate.None && styles.highlightedFooterItem
+                            ]}>
+                              <Text style={[
+                                styles.footerText,
+                                tradeDate !== TradeDate.None && styles.highlightedFooterText
+                              ]}>{item.tradeDate}</Text>
+                              <Text style={[
+                                styles.footerLabel,
+                                tradeDate !== TradeDate.None && styles.highlightedFooterLabel
+                              ]}>trade date</Text>
                             </View>
                           </View>
                         </Card>
@@ -527,6 +640,13 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flex: 1,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tradeDateButton: {
+    marginRight: 8,
   },
   logo: {
     width: 150,
@@ -669,6 +789,19 @@ const styles = StyleSheet.create({
   footerLabel: {
     fontSize: 12,
     color: '#9EA0A4',
+  },
+  highlightedFooterItem: {
+    backgroundColor: 'rgba(76, 110, 245, 0.1)',
+    borderRadius: 6,
+    padding: 4,
+    marginTop: -4,
+  },
+  highlightedFooterText: {
+    color: '#4C6EF5',
+    fontWeight: '600',
+  },
+  highlightedFooterLabel: {
+    color: '#4C6EF5',
   },
   searchBar: {
     flexDirection: 'row',
