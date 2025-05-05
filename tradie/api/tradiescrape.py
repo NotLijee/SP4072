@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from yahooquery import Ticker
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import date
 from dateutil.relativedelta import relativedelta
@@ -9,6 +10,9 @@ import matplotlib.pyplot as plt
 import requests 
 import pandas as pd 
 import google.generativeai as genai
+import yfinance as yf
+import time
+from yfinance.exceptions import YFRateLimitError
 
 # import schedule
 # import time 
@@ -18,6 +22,15 @@ gemini_key  = 'AIzaSyBjo1vfnMFrvdeNMW68hq2Fxjzgc5S5298'
 genai.configure(api_key=gemini_key)
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 url = 'http://openinsider.com/insider-purchases-25k'
 page = requests.get(url)
@@ -93,50 +106,185 @@ def ten_percent_owner():
     return filtered_dataframe_ten
 
 def ticker_ytd(ticker: str):
-    today = date.today()
-    ticker = Ticker(ticker)
-    data = ticker.history(interval="1wk", start="2024-01-01", end=today)
-    chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
-    return chart_data
+    try:
+        print("\n=== Starting YTD Data Fetch ===")
+        print(f"Input ticker: {ticker}")
+        
+        # Clean the ticker symbol
+        ticker = ticker.strip().upper()
+        print(f"Cleaned ticker: {ticker}")
+        
+        # Calculate date range
+        today = date.today()
+        start_date = date(today.year, 1, 1)
+        print(f"Date range: {start_date} to {today}")
+        
+        # Create Ticker object
+        ticker_obj = yf.Ticker(ticker)
+        
+        # Try to get weekly data first
+        try:
+            print("Attempting to fetch weekly data...")
+            data = ticker_obj.history(
+                interval="1wk",
+                start=start_date,
+                end=today
+            )
+            print(f"Weekly data shape: {data.shape}")
+            
+            if not data.empty:
+                print("Successfully downloaded weekly data")
+                chart_data = data.reset_index()[['Date', 'Close']].to_dict(orient='records')
+                print(f"Processed {len(chart_data)} weekly data points")
+                return chart_data
+        except Exception as e:
+            print(f"Error fetching weekly data: {str(e)}")
+        
+        # If weekly data fails, try daily data
+        try:
+            print("Attempting to fetch daily data...")
+            data = ticker_obj.history(
+                interval="1d",
+                start=start_date,
+                end=today
+            )
+            print(f"Daily data shape: {data.shape}")
+            
+            if not data.empty:
+                print("Successfully downloaded daily data")
+                chart_data = data.reset_index()[['Date', 'Close']].to_dict(orient='records')
+                print(f"Processed {len(chart_data)} daily data points")
+                return chart_data
+        except Exception as e:
+            print(f"Error fetching daily data: {str(e)}")
+        
+        # If both attempts fail, try one last time with download
+        try:
+            print("Attempting direct download...")
+            data = yf.download(
+                ticker,
+                start=start_date,
+                end=today,
+                interval="1d",
+                progress=False
+            )
+            print(f"Download data shape: {data.shape}")
+            
+            if not data.empty:
+                print("Successfully downloaded data")
+                chart_data = data.reset_index()[['Date', 'Close']].to_dict(orient='records')
+                print(f"Processed {len(chart_data)} data points")
+                return chart_data
+        except Exception as e:
+            print(f"Error in direct download: {str(e)}")
+        
+        # If all attempts fail, return empty array
+        print(f"No data available for {ticker}")
+        return []
+        
+    except Exception as e:
+        print(f"Unexpected error fetching data for {ticker}: {str(e)}")
+        print(f"Error type: {type(e)}")
+        return []
 
 def ticker_one_year(ticker: str):
-    today = date.today()
-    one_year_ago = today - relativedelta(years=1)
-    ticker = Ticker(ticker)
-    data = ticker.history(interval="1wk", start=one_year_ago, end=today)
-    chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
-    return chart_data
+    try:
+        today = date.today()
+        one_year_ago = today - relativedelta(years=1)
+        ticker = yf.Ticker(ticker)
+        data = ticker.history(interval="1wk", start=one_year_ago, end=today)
+        if data.empty:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data available for ticker {ticker}"
+            )
+        chart_data = data.reset_index()[['Date', 'Close']].to_dict(orient='records')
+        return chart_data
+    except Exception as e:
+        print(f"Error fetching data for {ticker}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching data: {str(e)}"
+        )
 
 def ticker_three_month(ticker: str):
-    today = date.today()
-    three_month_ago = today - relativedelta(months=3)
-    ticker = Ticker(ticker)
-    data = ticker.history(interval="1d", start=three_month_ago, end=today)
-    chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
-    return chart_data
+    try:
+        today = date.today()
+        three_month_ago = today - relativedelta(months=3)
+        ticker = yf.Ticker(ticker)
+        data = ticker.history(interval="1d", start=three_month_ago, end=today)
+        if data.empty:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data available for ticker {ticker}"
+            )
+        chart_data = data.reset_index()[['Date', 'Close']].to_dict(orient='records')
+        return chart_data
+    except Exception as e:
+        print(f"Error fetching data for {ticker}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching data: {str(e)}"
+        )
 
 def ticker_one_month(ticker: str):
-    today = date.today()
-    one_month_ago = today - relativedelta(months=1)
-    ticker = Ticker(ticker)
-    data = ticker.history(interval="1d", start=one_month_ago, end=today)
-    chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
-    return chart_data
+    try:
+        today = date.today()
+        one_month_ago = today - relativedelta(months=1)
+        ticker = yf.Ticker(ticker)
+        data = ticker.history(interval="1d", start=one_month_ago, end=today)
+        if data.empty:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data available for ticker {ticker}"
+            )
+        chart_data = data.reset_index()[['Date', 'Close']].to_dict(orient='records')
+        return chart_data
+    except Exception as e:
+        print(f"Error fetching data for {ticker}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching data: {str(e)}"
+        )
 
 def ticker_one_week(ticker: str):
-    today = date.today()
-    one_week_ago = today - relativedelta(weeks=1)
-    ticker = Ticker(ticker)
-    data = ticker.history(interval="1d", start=one_week_ago, end=today)
-    chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
-    return chart_data
+    try:
+        today = date.today()
+        one_week_ago = today - relativedelta(weeks=1)
+        ticker = yf.Ticker(ticker)
+        data = ticker.history(interval="1d", start=one_week_ago, end=today)
+        if data.empty:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data available for ticker {ticker}"
+            )
+        chart_data = data.reset_index()[['Date', 'Close']].to_dict(orient='records')
+        return chart_data
+    except Exception as e:
+        print(f"Error fetching data for {ticker}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching data: {str(e)}"
+        )
 
 def ticker_one_day(ticker: str):
-    today = date.today()
-    ticker = Ticker(ticker)
-    data = ticker.history(interval="1d", start=today, end=today)
-    chart_data = data.reset_index()[['date', 'close']].to_dict(orient='records')
-    return chart_data
+    try:
+        today = date.today()
+        ticker = yf.Ticker(ticker)
+        data = ticker.history(interval="1d", start=today, end=today)
+        if data.empty:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data available for ticker {ticker}"
+            )
+        chart_data = data.reset_index()[['Date', 'Close']].to_dict(orient='records')
+        return chart_data
+    except Exception as e:
+        print(f"Error fetching data for {ticker}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching data: {str(e)}"
+        )
 
 #Model for API
 class TradeData(BaseModel):
@@ -157,45 +305,25 @@ class TradeData(BaseModel):
 
 def ai_analysis(ticker: str):
     try:
-        stock = Ticker(ticker)
-        data = stock.summary_detail[ticker]
-        fd = stock.financial_data[ticker]
-        keydata = stock.key_stats[ticker]
+        stock = yf.Ticker(ticker)
+        analyst_recs = stock.recommendations
+        news = stock.news
         
         # Structure the data in a more readable format
         analysis_data = {
-            "Summary Details": {
-                "Previous Close": data.get('previousClose', 'N/A'),
-                "Open": data.get('open', 'N/A'),
-                "Day's Range": f"{data.get('dayLow', 'N/A')} - {data.get('dayHigh', 'N/A')}",
-                "52 Week Range": f"{data.get('fiftyTwoWeekLow', 'N/A')} - {data.get('fiftyTwoWeekHigh', 'N/A')}",
-                "Volume": data.get('volume', 'N/A'),
-                "Average Volume": data.get('averageVolume', 'N/A'),
-                "Market Cap": data.get('marketCap', 'N/A'),
-                "Beta": data.get('beta', 'N/A'),
-                "PE Ratio": data.get('trailingPE', 'N/A'),
-                "EPS": data.get('trailingEps', 'N/A'),
-                "Dividend Yield": data.get('dividendYield', 'N/A')
-            },
-            "Financial Data": {
-                "Current Price": fd.get('currentPrice', 'N/A'),
-                "Target High Price": fd.get('targetHighPrice', 'N/A'),
-                "Target Low Price": fd.get('targetLowPrice', 'N/A'),
-                "Target Mean Price": fd.get('targetMeanPrice', 'N/A'),
-                "Recommendation Mean": fd.get('recommendationMean', 'N/A'),
-                "Number of Analyst Opinions": fd.get('numberOfAnalystOpinions', 'N/A')
-            },
-            "Key Statistics": {
-                "Enterprise Value": keydata.get('enterpriseValue', 'N/A'),
-                "Forward PE": keydata.get('forwardPE', 'N/A'),
-                "Profit Margins": keydata.get('profitMargins', 'N/A'),
-                "Operating Margins": keydata.get('operatingMargins', 'N/A'),
-                "Return on Assets": keydata.get('returnOnAssets', 'N/A'),
-                "Return on Equity": keydata.get('returnOnEquity', 'N/A'),
-                "Revenue Growth": keydata.get('revenueGrowth', 'N/A'),
-                "Operating Cash Flow": keydata.get('operatingCashflow', 'N/A'),
-                "Earnings Growth": keydata.get('earningsGrowth', 'N/A')
-            }
+        "info": stock.info,
+        "history": stock.history(period="1y"),
+        "financials": stock.financials,
+        "balance_sheet": stock.balance_sheet,
+        "cashflow": stock.cashflow,
+        "earnings": stock.earnings,
+        "quarterly_earnings": stock.quarterly_earnings,
+        "dividends": stock.dividends,
+        "splits": stock.splits,
+        "recommendations": stock.recommendations,
+        "calendar": stock.calendar,
+        "sustainability": stock.sustainability,
+        "options": stock.options
         }
         
         # Create a more structured prompt
@@ -205,7 +333,7 @@ def ai_analysis(ticker: str):
         the data in one paragraph, word it so that your average joe can understand. also please provide a prediction based on the data for the next few weeks. 
         Make the prediction paragraph and separate it from the summary paragraph one: 
 
-{analysis_data} {data, fd, keydata}
+{analysis_data} {news, analyst_recs}
 
 Please provide:
 1. A clear summary of the stock's current position and key metrics
@@ -285,7 +413,20 @@ def get_ten_percent_data():
 @app.get("/ticker-ytd/{ticker}")
 def get_ticker_json(ticker: str):
     """Endpoint to trigger ticker json scraping"""
-    return ticker_ytd(ticker)
+    print(f"\n=== FastAPI Endpoint Called ===")
+    print(f"Received request for ticker: {ticker}")
+    try:
+        result = ticker_ytd(ticker)
+        print(f"Result type: {type(result)}")
+        print(f"Result: {result}")
+        if result is None:
+            print("Result is None, returning empty array")
+            return []
+        return result
+    except Exception as e:
+        print(f"Error in endpoint for {ticker}: {str(e)}")
+        print(f"Error type: {type(e)}")
+        return []
 
 @app.get("/ticker-one-year/{ticker}")
 def get_ticker_one_year_json(ticker: str):

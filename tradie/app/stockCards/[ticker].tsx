@@ -129,10 +129,24 @@ export default function StockDetails() {
           data = await getChartData(String(ticker));
           break;
       }
-      setChartData(data);
+      
+      // Ensure data is an array and has the correct format
+      const validData = Array.isArray(data) ? data.filter(item => 
+        item && 
+        typeof item === 'object' && 
+        'Date' in item && 
+        'Close' in item &&
+        !isNaN(Number(item.Close))
+      ).map(item => ({
+        date: item.Date,
+        close: Number(item.Close)
+      })) : [];
+      
+      console.log('Processed chart data:', validData);
+      setChartData(validData);
       
       // Start animation after data is loaded
-      if (data.length > 0) {
+      if (validData.length > 0) {
         chartAnimation.setValue(0);
         
         // Start the animation
@@ -288,7 +302,7 @@ export default function StockDetails() {
           </View>
         </View>
 
-        {/* Custom SVG Chart - now the only chart */}
+        {/* Custom SVG Chart */}
         <View style={styles.chartContainer}>
           <View style={styles.chartHeader}>
             <Text style={styles.chartTitle}>{ticker}'s Performance</Text>
@@ -388,9 +402,10 @@ export default function StockDetails() {
                            : '#ef4444', // Red for price decrease
                     strokeWidth: 2 
                   }}
-                  contentInset={{ top: 20, bottom: 20, left: 0, right: 0 }}
-                >
-                </LineChart>
+                  contentInset={{ top: 20, bottom: 20, left: 10, right: 10 }}
+                  yMin={Math.min(...chartData.map(item => item.close)) * 0.99}
+                  yMax={Math.max(...chartData.map(item => item.close)) * 1.01}
+                />
                 {chartData.length > 0 && (
                   <View style={styles.chartDataInfo}>
                     <Text style={styles.chartDateRange}>

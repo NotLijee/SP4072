@@ -75,11 +75,19 @@ export const getAIAnalysis = async (ticker) => {
 
 export const getChartData = async (ticker) => {
     try {
+        console.log(`Attempting to fetch YTD data for ticker: ${ticker}`);
+        console.log(`API URL: ${FAST_API_URL}/ticker-ytd/${ticker}`);
         const response = await axios.get(`${FAST_API_URL}/ticker-ytd/${ticker}`);
-        return response.data;
+        console.log('Response received:', response.data);
+        return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
         console.error('Error fetching chart data:', error);
-        throw error;
+        console.error('Error details:', {
+            message: error.message,
+            status: error.response?.status,
+            data: error.response?.data
+        });
+        return [];
     }
 };
 
