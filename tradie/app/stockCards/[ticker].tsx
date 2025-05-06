@@ -7,7 +7,6 @@ import {
   ScrollView,
   Image,
   Modal,
-  SafeAreaView,
   StatusBar,
   ActivityIndicator,
   Animated,
@@ -15,7 +14,7 @@ import {
   Alert,
   Dimensions
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
@@ -243,7 +242,12 @@ export default function StockDetails() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <Stack.Screen 
+        options={{
+          headerShown: false,
+        }} 
+      />
       <StatusBar barStyle="light-content" />
       
       {/* Header */}
@@ -521,7 +525,7 @@ export default function StockDetails() {
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity
               style={styles.modalCloseButton}
@@ -539,9 +543,9 @@ export default function StockDetails() {
             }}
             style={styles.modalWebView}
           />
-        </SafeAreaView>
+        </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -557,6 +561,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: '#121212',
+    paddingTop: 50, // Add padding for status bar
   },
   backButton: {
     padding: 8,

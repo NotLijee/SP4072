@@ -107,60 +107,46 @@ def ten_percent_owner():
 
 def ticker_ytd(ticker: str):
     try:
-        print("\n=== Starting YTD Data Fetch ===")
-        print(f"Input ticker: {ticker}")
-        
         # Clean the ticker symbol
         ticker = ticker.strip().upper()
-        print(f"Cleaned ticker: {ticker}")
         
         # Calculate date range
         today = date.today()
         start_date = date(today.year, 1, 1)
-        print(f"Date range: {start_date} to {today}")
         
         # Create Ticker object
         ticker_obj = yf.Ticker(ticker)
         
         # Try to get weekly data first
         try:
-            print("Attempting to fetch weekly data...")
             data = ticker_obj.history(
                 interval="1wk",
                 start=start_date,
                 end=today
             )
-            print(f"Weekly data shape: {data.shape}")
             
             if not data.empty:
-                print("Successfully downloaded weekly data")
                 chart_data = data.reset_index()[['Date', 'Close']].to_dict(orient='records')
-                print(f"Processed {len(chart_data)} weekly data points")
                 return chart_data
-        except Exception as e:
-            print(f"Error fetching weekly data: {str(e)}")
+        except Exception:
+            pass
         
         # If weekly data fails, try daily data
         try:
-            print("Attempting to fetch daily data...")
             data = ticker_obj.history(
                 interval="1d",
                 start=start_date,
                 end=today
             )
-            print(f"Daily data shape: {data.shape}")
             
             if not data.empty:
-                print("Successfully downloaded daily data")
                 chart_data = data.reset_index()[['Date', 'Close']].to_dict(orient='records')
-                print(f"Processed {len(chart_data)} daily data points")
                 return chart_data
-        except Exception as e:
-            print(f"Error fetching daily data: {str(e)}")
+        except Exception:
+            pass
         
         # If both attempts fail, try one last time with download
         try:
-            print("Attempting direct download...")
             data = yf.download(
                 ticker,
                 start=start_date,
@@ -168,23 +154,17 @@ def ticker_ytd(ticker: str):
                 interval="1d",
                 progress=False
             )
-            print(f"Download data shape: {data.shape}")
             
             if not data.empty:
-                print("Successfully downloaded data")
                 chart_data = data.reset_index()[['Date', 'Close']].to_dict(orient='records')
-                print(f"Processed {len(chart_data)} data points")
                 return chart_data
-        except Exception as e:
-            print(f"Error in direct download: {str(e)}")
+        except Exception:
+            pass
         
         # If all attempts fail, return empty array
-        print(f"No data available for {ticker}")
         return []
         
-    except Exception as e:
-        print(f"Unexpected error fetching data for {ticker}: {str(e)}")
-        print(f"Error type: {type(e)}")
+    except Exception:
         return []
 
 def ticker_one_year(ticker: str):
@@ -413,19 +393,12 @@ def get_ten_percent_data():
 @app.get("/ticker-ytd/{ticker}")
 def get_ticker_json(ticker: str):
     """Endpoint to trigger ticker json scraping"""
-    print(f"\n=== FastAPI Endpoint Called ===")
-    print(f"Received request for ticker: {ticker}")
     try:
         result = ticker_ytd(ticker)
-        print(f"Result type: {type(result)}")
-        print(f"Result: {result}")
         if result is None:
-            print("Result is None, returning empty array")
             return []
         return result
-    except Exception as e:
-        print(f"Error in endpoint for {ticker}: {str(e)}")
-        print(f"Error type: {type(e)}")
+    except Exception:
         return []
 
 @app.get("/ticker-one-year/{ticker}")
