@@ -16,6 +16,7 @@ import {
   Dimensions
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
@@ -243,305 +244,308 @@ export default function StockDetails() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-          <IconSymbol size={24} name="chevron.left" color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{ticker}</Text>
-        <View style={styles.headerRight} />
-      </View>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+            <IconSymbol size={24} name="chevron.left" color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{ticker}</Text>
+          <View style={styles.headerRight} />
+        </View>
 
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Company and Insider Info */}
-        <View style={styles.companyContainer}>
-          <View style={styles.companyHeader}>
-            <TouchableOpacity onPress={openYahooFinance}>
-              <Text style={styles.companyName}>{companyName}</Text>
-              <Text style={styles.tickerSymbol}>{ticker}</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.insiderInfo}>
-            <TouchableOpacity
-              onPress={() => handlePressInsiderName(String(insiderName))}
-            >
-              <Text style={styles.insiderName}>{insiderName}</Text>
-            </TouchableOpacity>
-            <View style={styles.insiderTagRow}>
-              <View style={styles.insiderTag}>
-                <Text style={styles.insiderTagText}>{title}</Text>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Company and Insider Info */}
+          <View style={styles.companyContainer}>
+            <View style={styles.companyHeader}>
+              <TouchableOpacity onPress={openYahooFinance}>
+                <Text style={styles.companyName}>{companyName}</Text>
+                <Text style={styles.tickerSymbol}>{ticker}</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.insiderInfo}>
+              <TouchableOpacity
+                onPress={() => handlePressInsiderName(String(insiderName))}
+              >
+                <Text style={styles.insiderName}>{insiderName}</Text>
+              </TouchableOpacity>
+              <View style={styles.insiderTagRow}>
+                <View style={styles.insiderTag}>
+                  <Text style={styles.insiderTagText}>{title}</Text>
+                </View>
               </View>
             </View>
-          </View>
-          
-          <View style={styles.priceContainer}>
-            <Text style={styles.price}>{price}</Text>
-            <View style={[
-              styles.tradeBadge, 
-              tradeTypeString.toLowerCase() === 'purchase' ? styles.purchaseBadge : styles.saleBadge
-            ]}>
-              <Text style={styles.tradeBadgeText}>
-                {tradeTypeString.toLowerCase() === 'purchase' ? 'Purchase' : 'Sale'}
+            
+            <View style={styles.priceContainer}>
+              <Text style={styles.price}>{price}</Text>
+              <View style={[
+                styles.tradeBadge, 
+                tradeTypeString.toLowerCase() === 'purchase' ? styles.purchaseBadge : styles.saleBadge
+              ]}>
+                <Text style={styles.tradeBadgeText}>
+                  {tradeTypeString.toLowerCase() === 'purchase' ? 'Purchase' : 'Sale'}
+                </Text>
+              </View>
+            </View>
+            
+            <View style={styles.valueChangeRow}>
+              <Text style={styles.valueChange}>
+                {Number(percentOwnedIncrease) > 0 ? '+' : ''}{percentOwnedIncrease}%
               </Text>
+              <Text style={styles.valueChangeLabel}>Position Invested</Text>
             </View>
           </View>
-          
-          <View style={styles.valueChangeRow}>
-            <Text style={styles.valueChange}>
-              {Number(percentOwnedIncrease) > 0 ? '+' : ''}{percentOwnedIncrease}%
-            </Text>
-            <Text style={styles.valueChangeLabel}>Position Invested</Text>
-          </View>
-        </View>
 
-        {/* Custom SVG Chart */}
-        <View style={styles.chartContainer}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>{ticker}'s Performance</Text>
-          </View>
-          
-          <View style={styles.timePeriodSelector}>
-            <TouchableOpacity
-              style={[
-                styles.timePeriodButton,
-                selectedTimePeriod === '1w' && styles.selectedTimePeriodButton
-              ]}
-              onPress={() => handleTimePeriodChange('1w')}
-            >
-              <Text style={[
-                styles.timePeriodButtonText,
-                selectedTimePeriod === '1w' && styles.selectedTimePeriodText
-              ]}>1W</Text>
-            </TouchableOpacity>
+          {/* Custom SVG Chart */}
+          <View style={styles.chartContainer}>
+            <View style={styles.chartHeader}>
+              <Text style={styles.chartTitle}>{ticker}'s Performance</Text>
+            </View>
             
-            <TouchableOpacity
-              style={[
-                styles.timePeriodButton,
-                selectedTimePeriod === '1m' && styles.selectedTimePeriodButton
-              ]}
-              onPress={() => handleTimePeriodChange('1m')}
-            >
-              <Text style={[
-                styles.timePeriodButtonText,
-                selectedTimePeriod === '1m' && styles.selectedTimePeriodText
-              ]}>1M</Text>
-            </TouchableOpacity>
+            <View style={styles.timePeriodSelector}>
+              <TouchableOpacity
+                style={[
+                  styles.timePeriodButton,
+                  selectedTimePeriod === '1w' && styles.selectedTimePeriodButton
+                ]}
+                onPress={() => handleTimePeriodChange('1w')}
+              >
+                <Text style={[
+                  styles.timePeriodButtonText,
+                  selectedTimePeriod === '1w' && styles.selectedTimePeriodText
+                ]}>1W</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[
+                  styles.timePeriodButton,
+                  selectedTimePeriod === '1m' && styles.selectedTimePeriodButton
+                ]}
+                onPress={() => handleTimePeriodChange('1m')}
+              >
+                <Text style={[
+                  styles.timePeriodButtonText,
+                  selectedTimePeriod === '1m' && styles.selectedTimePeriodText
+                ]}>1M</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[
+                  styles.timePeriodButton,
+                  selectedTimePeriod === '3m' && styles.selectedTimePeriodButton
+                ]}
+                onPress={() => handleTimePeriodChange('3m')}
+              >
+                <Text style={[
+                  styles.timePeriodButtonText,
+                  selectedTimePeriod === '3m' && styles.selectedTimePeriodText
+                ]}>3M</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[
+                  styles.timePeriodButton,
+                  selectedTimePeriod === 'ytd' && styles.selectedTimePeriodButton
+                ]}
+                onPress={() => handleTimePeriodChange('ytd')}
+              >
+                <Text style={[
+                  styles.timePeriodButtonText,
+                  selectedTimePeriod === 'ytd' && styles.selectedTimePeriodText
+                ]}>YTD</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[
+                  styles.timePeriodButton,
+                  selectedTimePeriod === '1y' && styles.selectedTimePeriodButton
+                ]}
+                onPress={() => handleTimePeriodChange('1y')}
+              >
+                <Text style={[
+                  styles.timePeriodButtonText,
+                  selectedTimePeriod === '1y' && styles.selectedTimePeriodText
+                ]}>1Y</Text>
+              </TouchableOpacity>
+            </View>
             
-            <TouchableOpacity
-              style={[
-                styles.timePeriodButton,
-                selectedTimePeriod === '3m' && styles.selectedTimePeriodButton
-              ]}
-              onPress={() => handleTimePeriodChange('3m')}
-            >
-              <Text style={[
-                styles.timePeriodButtonText,
-                selectedTimePeriod === '3m' && styles.selectedTimePeriodText
-              ]}>3M</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.timePeriodButton,
-                selectedTimePeriod === 'ytd' && styles.selectedTimePeriodButton
-              ]}
-              onPress={() => handleTimePeriodChange('ytd')}
-            >
-              <Text style={[
-                styles.timePeriodButtonText,
-                selectedTimePeriod === 'ytd' && styles.selectedTimePeriodText
-              ]}>YTD</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.timePeriodButton,
-                selectedTimePeriod === '1y' && styles.selectedTimePeriodButton
-              ]}
-              onPress={() => handleTimePeriodChange('1y')}
-            >
-              <Text style={[
-                styles.timePeriodButtonText,
-                selectedTimePeriod === '1y' && styles.selectedTimePeriodText
-              ]}>1Y</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.customChartContainer}>
-            {isCustomChartLoading ? (
-              <View style={styles.loadingContainer}>
-                <Animated.Image 
-                  source={require('@/assets/images/TradieLogo-removebg-preview.png')}
-                  style={[
-                    styles.loadingLogo,
-                    {
-                      transform: [{ scale: pulseAnim }]
-                    }
-                  ]}
-                  resizeMode="contain"
-                />
-              </View>
-            ) : chartData.length > 0 ? (
-              <>
-                <LineChart
-                  style={{ height: 200, width: '100%' }}
-                  data={animatedData.length > 0 ? animatedData : chartData.map(item => item.close)}
-                  curve={shape.curveNatural}
-                  svg={{ 
-                    stroke: chartData.length > 1 && 
-                           chartData[chartData.length - 1].close > chartData[0].close 
-                           ? '#4ade80' // Green for price increase
-                           : '#ef4444', // Red for price decrease
-                    strokeWidth: 2 
-                  }}
-                  contentInset={{ top: 20, bottom: 20, left: 10, right: 10 }}
-                  yMin={Math.min(...chartData.map(item => item.close)) * 0.99}
-                  yMax={Math.max(...chartData.map(item => item.close)) * 1.01}
-                />
-                {chartData.length > 0 && (
-                  <View style={styles.chartDataInfo}>
-                    <Text style={styles.chartDateRange}>
-                      {selectedTimePeriod === '1w' ? 'The past week' : 
-                       selectedTimePeriod === '1m' ? 'The past month' : 
-                       selectedTimePeriod === '3m' ? 'The past three months' : 
-                       selectedTimePeriod === '1y' ? 'The past year' : 
-                       'Year to date'}
-                    </Text>
-                    <Text style={[
-                      styles.priceChange,
-                      chartData.length > 1 && chartData[chartData.length - 1].close > chartData[0].close 
-                        ? styles.priceUp 
-                        : styles.priceDown
-                    ]}>
-                      {chartData.length > 1 
-                        ? ((chartData[chartData.length - 1].close - chartData[0].close) / chartData[0].close * 100).toFixed(2) + '%'
-                        : '0.00%'
+            <View style={styles.customChartContainer}>
+              {isCustomChartLoading ? (
+                <View style={styles.loadingContainer}>
+                  <Animated.Image 
+                    source={require('@/assets/images/TradieLogo-removebg-preview.png')}
+                    style={[
+                      styles.loadingLogo,
+                      {
+                        transform: [{ scale: pulseAnim }]
                       }
-                    </Text>
-                  </View>
-                )}
-              </>
-            ) : (
-              <View style={styles.noDataContainer}>
-                <Text style={styles.noDataText}>No chart data available</Text>
-              </View>
-            )}
+                    ]}
+                    resizeMode="contain"
+                  />
+                </View>
+              ) : chartData.length > 0 ? (
+                <>
+                  <LineChart
+                    style={{ height: 200, width: '100%' }}
+                    data={animatedData.length > 0 ? animatedData : chartData.map(item => item.close)}
+                    curve={shape.curveNatural}
+                    svg={{ 
+                      stroke: chartData.length > 1 && 
+                             chartData[chartData.length - 1].close > chartData[0].close 
+                             ? '#4ade80' // Green for price increase
+                             : '#ef4444', // Red for price decrease
+                      strokeWidth: 2 
+                    }}
+                    contentInset={{ top: 20, bottom: 20, left: 10, right: 10 }}
+                    yMin={Math.min(...chartData.map(item => item.close)) * 0.99}
+                    yMax={Math.max(...chartData.map(item => item.close)) * 1.01}
+                  />
+                  {chartData.length > 0 && (
+                    <View style={styles.chartDataInfo}>
+                      <Text style={styles.chartDateRange}>
+                        {selectedTimePeriod === '1w' ? 'The past week' : 
+                         selectedTimePeriod === '1m' ? 'The past month' : 
+                         selectedTimePeriod === '3m' ? 'The past three months' : 
+                         selectedTimePeriod === '1y' ? 'The past year' : 
+                         'Year to date'}
+                      </Text>
+                      <Text style={[
+                        styles.priceChange,
+                        chartData.length > 1 && chartData[chartData.length - 1].close > chartData[0].close 
+                          ? styles.priceUp 
+                          : styles.priceDown
+                      ]}>
+                        {chartData.length > 1 
+                          ? ((chartData[chartData.length - 1].close - chartData[0].close) / chartData[0].close * 100).toFixed(2) + '%'
+                          : '0.00%'
+                        }
+                      </Text>
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={styles.noDataContainer}>
+                  <Text style={styles.noDataText}>No chart data available</Text>
+                </View>
+              )}
+            </View>
           </View>
-        </View>
-        
+          
 
-        {/* Trade Details */}
-        <View style={styles.detailsSection}>
-          <Text style={styles.detailsTitle}>Trade Details</Text>
-          
-          <View style={styles.detailsGrid}>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailValue}>{tradeDate}</Text>
-              <Text style={styles.detailLabel}>TRADE DATE</Text>
-            </View>
+          {/* Trade Details */}
+          <View style={styles.detailsSection}>
+            <Text style={styles.detailsTitle}>Trade Details</Text>
             
-            <View style={styles.detailItem}>
-              <Text style={styles.detailValue}>{filingDate}</Text>
-              <Text style={styles.detailLabel}>FILING DATE</Text>
-            </View>
-            
-            <View style={styles.detailItem}>
-              <Text style={styles.detailValue}>{quantity}</Text>
-              <Text style={styles.detailLabel}>QUANTITY</Text>
-            </View>
-            
-            <View style={styles.detailItem}>
-              <Text style={styles.detailValue}>{alreadyOwned}</Text>
-              <Text style={styles.detailLabel}>NOW OWNED</Text>
-            </View>
-          </View>
-        </View>
-        
-        {/* Value Metrics */}
-        <View style={styles.metricsSection}>
-          <View style={styles.metricItem}>
-            <Text style={styles.metricLabel}>TOTAL VALUE</Text>
-            <Text style={styles.metricValue}>{moneyValueIncrease}</Text>
-          </View>
-          
-          <View style={styles.metricItem}>
-            <Text style={styles.metricLabel}>OWNED INCREASE</Text>
-            <Text style={styles.metricValue}>{percentOwnedIncrease}%</Text>
-          </View>
-        </View>
-        
-        {/* AI Analysis Section */}
-        <View style={styles.analysisSection}>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.tradeButton]}
-            onPress={navigateToTrade}
-          >
-            <Text style={styles.actionButtonText}>Buy {ticker}</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={fetchAnalysis}
-            disabled={isAnalysisLoading}
-          >
-            {isAnalysisLoading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.actionButtonText}>Get Stock Analysis</Text>
-            )}
-          </TouchableOpacity>
-          
-          {analysisResult && (
-            <View style={styles.analysisContent}>
-              <View style={styles.analysisBlock}>
-                <Text style={styles.analysisTitle}>Summary</Text>
-                <Text style={styles.analysisText}>{analysisResult.summary}</Text>
+            <View style={styles.detailsGrid}>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailValue}>{tradeDate}</Text>
+                <Text style={styles.detailLabel}>TRADE DATE</Text>
               </View>
               
-              <View style={styles.analysisBlock}>
-                <Text style={styles.analysisTitle}>Prediction</Text>
-                <Text style={styles.analysisText}>{analysisResult.prediction}</Text>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailValue}>{filingDate}</Text>
+                <Text style={styles.detailLabel}>FILING DATE</Text>
+              </View>
+              
+              <View style={styles.detailItem}>
+                <Text style={styles.detailValue}>{quantity}</Text>
+                <Text style={styles.detailLabel}>QUANTITY</Text>
+              </View>
+              
+              <View style={styles.detailItem}>
+                <Text style={styles.detailValue}>{alreadyOwned}</Text>
+                <Text style={styles.detailLabel}>NOW OWNED</Text>
               </View>
             </View>
-          )}
-        </View>
-      </ScrollView>
-
-      {/* Modal for insider search */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setModalVisible(false)}
-            >
-              <IconSymbol size={24} name="xmark" color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Insider Details</Text>
-            <View style={styles.headerRight}/>
           </View>
+          
+          {/* Value Metrics */}
+          <View style={styles.metricsSection}>
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>TOTAL VALUE</Text>
+              <Text style={styles.metricValue}>{moneyValueIncrease}</Text>
+            </View>
+            
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>OWNED INCREASE</Text>
+              <Text style={styles.metricValue}>{percentOwnedIncrease}%</Text>
+            </View>
+          </View>
+          
+          {/* AI Analysis Section */}
+          <View style={styles.analysisSection}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.tradeButton]}
+              onPress={navigateToTrade}
+            >
+              <Text style={styles.actionButtonText}>Buy {ticker}</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={fetchAnalysis}
+              disabled={isAnalysisLoading}
+            >
+              {isAnalysisLoading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.actionButtonText}>Get Stock Analysis</Text>
+              )}
+            </TouchableOpacity>
+            
+            {analysisResult && (
+              <View style={styles.analysisContent}>
+                <View style={styles.analysisBlock}>
+                  <Text style={styles.analysisTitle}>Summary</Text>
+                  <Text style={styles.analysisText}>{analysisResult.summary}</Text>
+                </View>
+                
+                <View style={styles.analysisBlock}>
+                  <Text style={styles.analysisTitle}>Prediction</Text>
+                  <Text style={styles.analysisText}>{analysisResult.prediction}</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </ScrollView>
 
-          <WebView
-            source={{
-              uri: searchText,
-            }}
-            style={styles.modalWebView}
-          />
-        </SafeAreaView>
-      </Modal>
-    </SafeAreaView>
+        {/* Modal for insider search */}
+        <Modal
+          visible={modalVisible}
+          animationType="slide"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <IconSymbol size={24} name="xmark" color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Insider Details</Text>
+              <View style={styles.headerRight}/>
+            </View>
+
+            <WebView
+              source={{
+                uri: searchText,
+              }}
+              style={styles.modalWebView}
+            />
+          </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
+    </>
   );
 }
 
