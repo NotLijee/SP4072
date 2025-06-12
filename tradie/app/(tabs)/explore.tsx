@@ -72,11 +72,18 @@ export default function ProfileScreen() {
       
       setUser(authUser as UserType);
       
-      // Get user profile data
-      const { profile: userProfile, error: profileError } = await getUserProfile(authUser.id);
-      
-      if (!profileError && userProfile) {
-        setProfile(userProfile as ProfileType);
+      // Get user profile data - handle gracefully if profiles table doesn't exist
+      try {
+        const { profile: userProfile, error: profileError } = await getUserProfile(authUser.id);
+        
+        if (!profileError && userProfile) {
+          setProfile(userProfile as ProfileType);
+        }
+      } catch (profileFetchError) {
+        // Profile table doesn't exist or other profile-related error
+        // Continue without profile data - the UI will use user data as fallback
+        console.log('Profile data not available, continuing with user data only');
+        setProfile(null);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);

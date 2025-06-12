@@ -285,46 +285,161 @@ class TradeData(BaseModel):
 
 def ai_analysis(ticker: str):
     try:
-        # Use minimal yfinance data to avoid 401 errors
+        # Use comprehensive but safe yfinance data gathering
         stock = yf.Ticker(ticker)
+        analysis_data = {}
         
-        # Get basic historical data (less likely to be blocked)
+        # 1. Get extended historical data (most reliable)
         try:
-            # Try to get recent price data instead of comprehensive info
-            hist = stock.history(period="5d", interval="1d")
-            if not hist.empty:
-                current_price = round(hist['Close'].iloc[-1], 2)
-                price_change = round(hist['Close'].iloc[-1] - hist['Close'].iloc[-2], 2) if len(hist) > 1 else 0
-                percent_change = round((price_change / hist['Close'].iloc[-2]) * 100, 2) if len(hist) > 1 and hist['Close'].iloc[-2] != 0 else 0
+            # Get 3 months of daily data for better trend analysis
+            hist_3m = stock.history(period="3mo", interval="1d")
+            if not hist_3m.empty:
+                current_price = round(hist_3m['Close'].iloc[-1], 2)
+                prev_price = round(hist_3m['Close'].iloc[-2], 2) if len(hist_3m) > 1 else current_price
+                price_change = round(current_price - prev_price, 2)
+                percent_change = round((price_change / prev_price) * 100, 2) if prev_price != 0 else 0
+                
+                # Calculate additional metrics
+                high_52w = round(hist_3m['High'].max(), 2)
+                low_52w = round(hist_3m['Low'].min(), 2)
+                avg_volume = int(hist_3m['Volume'].mean())
+                recent_volume = int(hist_3m['Volume'].iloc[-1])
+                
+                # Calculate volatility (standard deviation of returns)
+                returns = hist_3m['Close'].pct_change().dropna()
+                volatility = round(returns.std() * 100, 2)
+                
+                analysis_data.update({
+                    'current_price': current_price,
+                    'price_change': price_change,
+                    'percent_change': percent_change,
+                    'high_3m': high_52w,
+                    'low_3m': low_52w,
+                    'avg_volume': avg_volume,
+                    'recent_volume': recent_volume,
+                    'volatility': volatility,
+                    'trend_days': len(hist_3m)
+                })
             else:
-                current_price = "N/A"
-                price_change = 0
-                percent_change = 0
-        except Exception:
-            current_price = "N/A"
-            price_change = 0
-            percent_change = 0
+                analysis_data.update({
+                    'current_price': 'N/A', 'price_change': 0, 'percent_change': 0,
+                    'high_3m': 'N/A', 'low_3m': 'N/A', 'avg_volume': 'N/A', 
+                    'recent_volume': 'N/A', 'volatility': 'N/A', 'trend_days': 0
+                })
+        except Exception as e:
+            print(f"Historical data error for {ticker}: {e}")
+            analysis_data.update({
+                'current_price': 'N/A', 'price_change': 0, 'percent_change': 0,
+                'high_3m': 'N/A', 'low_3m': 'N/A', 'avg_volume': 'N/A', 
+                'recent_volume': 'N/A', 'volatility': 'N/A', 'trend_days': 0
+            })
         
-        # Create a simple prompt with basic data
-        prompt = f"""You are a financial advisor. Analyze {ticker} stock briefly.
+        # Small delay to avoid rate limiting
+        time.sleep(0.1)
         
-Current stock data:
-- Ticker: {ticker}
-- Recent price: ${current_price}
-- Price change: ${price_change} ({percent_change}%)
+        # 2. Try to get basic company information (sometimes works)
+        try:
+            info = stock.info
+            analysis_data.update({
+                'company_name': info.get('longName', ticker),
+                'sector': info.get('sector', 'Unknown'),
+                'market_cap': info.get('marketCap', 'N/A'),
+                'pe_ratio': info.get('trailingPE', 'N/A'),
+                'dividend_yield': info.get('dividendYield', 'N/A'),
+                'beta': info.get('beta', 'N/A')
+            })
+        except Exception as e:
+            print(f"Basic info error for {ticker}: {e}")
+            analysis_data.update({
+                'company_name': ticker,
+                'sector': 'Unknown',
+                'market_cap': 'N/A',
+                'pe_ratio': 'N/A',
+                'dividend_yield': 'N/A',
+                'beta': 'N/A'
+            })
+        
+        # Small delay to avoid rate limiting
+        time.sleep(0.1)
+        
+        # 3. Try to get recent news (often blocked, but worth trying)
+        try:
+            news = stock.news
+            recent_news = []
+            if news and len(news) > 0:
+                for item in news[:3]:  # Get up to 3 recent news items
+                    recent_news.append({
+                        'title': item.get('title', '')[:100],  # Limit title length
+                        'summary': item.get('summary', '')[:200] if item.get('summary') else ''
+                    })
+            analysis_data['recent_news'] = recent_news
+        except Exception as e:
+            print(f"News error for {ticker}: {e}")
+            analysis_data['recent_news'] = []
+        
+        # Small delay to avoid rate limiting
+        time.sleep(0.1)
+        
+        # 4. Try to get analyst recommendations (often blocked)
+        try:
+            recommendations = stock.recommendations
+            if recommendations is not None and not recommendations.empty:
+                latest_rec = recommendations.iloc[-1] if len(recommendations) > 0 else None
+                if latest_rec is not None:
+                    analysis_data['analyst_recommendation'] = {
+                        'strong_buy': int(latest_rec.get('strongBuy', 0)),
+                        'buy': int(latest_rec.get('buy', 0)),
+                        'hold': int(latest_rec.get('hold', 0)),
+                        'sell': int(latest_rec.get('sell', 0)),
+                        'strong_sell': int(latest_rec.get('strongSell', 0))
+                    }
+                else:
+                    analysis_data['analyst_recommendation'] = None
+            else:
+                analysis_data['analyst_recommendation'] = None
+        except Exception as e:
+            print(f"Recommendations error for {ticker}: {e}")
+            analysis_data['analyst_recommendation'] = None
+        
+        # Create a comprehensive prompt with all available data
+        prompt = f"""You are a professional financial advisor analyzing {ticker} stock. 
+        
+Comprehensive Stock Analysis Data:
+- Company: {analysis_data.get('company_name', ticker)}
+- Sector: {analysis_data.get('sector', 'Unknown')}
+- Current Price: ${analysis_data.get('current_price', 'N/A')}
+- Price Change: ${analysis_data.get('price_change', 0)} ({analysis_data.get('percent_change', 0)}%)
+- 3-Month High: ${analysis_data.get('high_3m', 'N/A')}
+- 3-Month Low: ${analysis_data.get('low_3m', 'N/A')}
+- Average Volume: {analysis_data.get('avg_volume', 'N/A'):,} shares
+- Recent Volume: {analysis_data.get('recent_volume', 'N/A'):,} shares
+- Volatility: {analysis_data.get('volatility', 'N/A')}%
+- P/E Ratio: {analysis_data.get('pe_ratio', 'N/A')}
+- Beta: {analysis_data.get('beta', 'N/A')}
+- Market Cap: {analysis_data.get('market_cap', 'N/A')}
+- Dividend Yield: {analysis_data.get('dividend_yield', 'N/A')}
+- Data Points: {analysis_data.get('trend_days', 0)} days of trading data
 
-Please provide:
-1. A brief summary of the stock's recent performance (2-3 sentences)
-2. A simple prediction for the next few weeks (2-3 sentences)
+Recent News Headlines:
+{chr(10).join([f"- {news.get('title', '')}" for news in analysis_data.get('recent_news', [])[:2]]) if analysis_data.get('recent_news') else "- No recent news available"}
+
+Analyst Recommendations:
+{f"Strong Buy: {analysis_data['analyst_recommendation']['strong_buy']}, Buy: {analysis_data['analyst_recommendation']['buy']}, Hold: {analysis_data['analyst_recommendation']['hold']}, Sell: {analysis_data['analyst_recommendation']['sell']}, Strong Sell: {analysis_data['analyst_recommendation']['strong_sell']}" if analysis_data.get('analyst_recommendation') else "- No analyst recommendations available"}
+
+Please provide a comprehensive analysis with:
+1. A detailed summary of the stock's current position, recent performance, and key metrics (3-4 sentences)
+2. A well-informed prediction for the next 2-4 weeks based on technical indicators, fundamentals, and market context (3-4 sentences)
+
+Consider volume trends, volatility, price position relative to highs/lows, sector context, and any news sentiment.
 
 Format your response as:
 [SUMMARY]
-Your summary here
+Your detailed summary here
 
-[PREDICTION]  
-Your prediction here
+[PREDICTION]
+Your informed prediction here
 
-Keep it simple and accessible for average investors."""
+Make the analysis professional yet accessible, and base conclusions on the actual data provided."""
 
         model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(prompt)
@@ -345,7 +460,8 @@ Keep it simple and accessible for average investors."""
             
         return {
             "summary": summary,
-            "prediction": prediction
+            "prediction": prediction,
+            "data_quality": f"Analysis based on {analysis_data.get('trend_days', 0)} days of data"
         }
         
     except Exception as e:
