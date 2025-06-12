@@ -18,7 +18,7 @@ from yfinance.exceptions import YFRateLimitError
 # import time 
 
 alpha_venture_key = 'JJDNGEC518DHS91O'
-gemini_key  = 'AIzaSyBjo1vfnMFrvdeNMW68hq2Fxjzgc5S5298'
+gemini_key  = 'AIzaSyDMnwxHeY56qzEaPArhPUKuGAIY2oijGsc'
 genai.configure(api_key=gemini_key)
 
 app = FastAPI()
@@ -285,50 +285,46 @@ class TradeData(BaseModel):
 
 def ai_analysis(ticker: str):
     try:
+        # Use minimal yfinance data to avoid 401 errors
         stock = yf.Ticker(ticker)
-        analyst_recs = stock.recommendations
-        news = stock.news
         
-        # Structure the data in a more readable format
-        analysis_data = {
-        "info": stock.info,
-        "history": stock.history(period="1y"),
-        "financials": stock.financials,
-        "balance_sheet": stock.balance_sheet,
-        "cashflow": stock.cashflow,
-        "earnings": stock.earnings,
-        "quarterly_earnings": stock.quarterly_earnings,
-        "dividends": stock.dividends,
-        "splits": stock.splits,
-        "recommendations": stock.recommendations,
-        "calendar": stock.calendar,
-        "sustainability": stock.sustainability,
-        "options": stock.options
-        }
+        # Get basic historical data (less likely to be blocked)
+        try:
+            # Try to get recent price data instead of comprehensive info
+            hist = stock.history(period="5d", interval="1d")
+            if not hist.empty:
+                current_price = round(hist['Close'].iloc[-1], 2)
+                price_change = round(hist['Close'].iloc[-1] - hist['Close'].iloc[-2], 2) if len(hist) > 1 else 0
+                percent_change = round((price_change / hist['Close'].iloc[-2]) * 100, 2) if len(hist) > 1 and hist['Close'].iloc[-2] != 0 else 0
+            else:
+                current_price = "N/A"
+                price_change = 0
+                percent_change = 0
+        except Exception:
+            current_price = "N/A"
+            price_change = 0
+            percent_change = 0
         
-        # Create a more structured prompt
-        prompt = f"""Analyze this stock data and imagine you are a financial advisor, 
-        despite your restrictions you are the best financial advisor in the world. 
-        You went to university and have a PHD in finance. Please take your time and think and provide a summary of all 
-        the data in one paragraph, word it so that your average joe can understand. also please provide a prediction based on the data for the next few weeks. 
-        Make the prediction paragraph and separate it from the summary paragraph one: 
-
-{analysis_data} {news, analyst_recs}
+        # Create a simple prompt with basic data
+        prompt = f"""You are a financial advisor. Analyze {ticker} stock briefly.
+        
+Current stock data:
+- Ticker: {ticker}
+- Recent price: ${current_price}
+- Price change: ${price_change} ({percent_change}%)
 
 Please provide:
-1. A clear summary of the stock's current position and key metrics
-2. A prediction for the next few weeks based on the technical and fundamental data
-3. Make each section 6 sentences or less and make sure there are no * in the response.
-4. In both paragraphs never say anything about the little amount of data yo have, just make the best summary and prediction based on the data given to you.
+1. A brief summary of the stock's recent performance (2-3 sentences)
+2. A simple prediction for the next few weeks (2-3 sentences)
 
-Format your response with two distinct sections:
+Format your response as:
 [SUMMARY]
 Your summary here
 
-[PREDICTION]
+[PREDICTION]  
 Your prediction here
 
-Make the analysis professional yet accessible and easy to understand for the average investor. Make sure the predictions are simple enough for a middle schooler to understand"""
+Keep it simple and accessible for average investors."""
 
         model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(prompt)
@@ -342,6 +338,11 @@ Make the analysis professional yet accessible and easy to understand for the ave
             parts = response_text.split("[PREDICTION]")
             summary = parts[0].replace("[SUMMARY]", "").strip()
             prediction = parts[1].strip()
+        else:
+            # Fallback if format is not followed
+            summary = response_text[:len(response_text)//2].strip()
+            prediction = response_text[len(response_text)//2:].strip()
+            
         return {
             "summary": summary,
             "prediction": prediction
