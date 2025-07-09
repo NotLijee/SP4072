@@ -1,0 +1,14 @@
+{
+"builds" : [
+    {
+    "src": "/api/tradiescrape.py",
+    "use": "@vercel/python"
+    }
+],
+"routes" : [
+    {
+        "src": "/(.*)",
+        "dest": "/api/tradiescrape.py"
+    }
+]
+}
